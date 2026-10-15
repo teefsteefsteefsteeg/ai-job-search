@@ -116,3 +116,6 @@ company_research/*.json
 
 # Brainstorm mockups (superpowers visual companion) - never ship
 .superpowers/
+
+# Personal CV source (contact details + photo) - keep out of the public repo
+cv/tan_nguyen/
