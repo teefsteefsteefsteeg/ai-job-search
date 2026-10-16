@@ -149,6 +149,10 @@ h2,h3{font-family:var(--f-display);font-weight:800;margin:0;text-wrap:balance;le
   .bar{grid-template-columns:52px 1fr 26px;font-size:11px}
   #menuBtns{top:calc(var(--gt) + 84px)}
 }
+html.in-battle #hotbar,html.in-battle #prompt,html.in-battle #touch,html.in-battle #log{display:none}
+#loading{position:fixed;inset:0;z-index:30;background:radial-gradient(circle at 50% 60%,#203528,var(--night));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:16px}
+.load-track{width:min(280px,70vw);height:8px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
+.load-track i{display:block;height:100%;width:0;background:var(--wheat);transition:width .2s}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -204,8 +208,10 @@ h2,h3{font-family:var(--f-display);font-weight:800;margin:0;text-wrap:balance;le
 
 <div id="modal" class="modal" hidden><div class="sheet" id="sheet"></div></div>
 <div id="fade"></div>
+<div id="loading"><div class="hero">Nông Trại<br>Hoang Dã</div><div class="load-track"><i id="loadBar"></i></div><div class="note" id="loadText">Đang tải model 3D…</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 (() => {
 'use strict';
@@ -232,15 +238,17 @@ const SEASONS = [
   {name:'Đông', grass:'#dfe7ea', grass2:'#d4dee2', spk:'#ffffff', outer:0xc6d2d6, leaf:0xb7c6bc, leaf2:0x9fb2a6, sky:0xc6d6e2},
 ];
 const CROPS = {
-  carrot:  {name:'Cà rốt', days:3, seed:12, sell:35,  color:0xf08a24},
-  tomato:  {name:'Cà chua', days:5, seed:28, sell:80,  color:0xe0402a},
-  pumpkin: {name:'Bí ngô', days:7, seed:55, sell:190, color:0xf09a2a},
+  carrot:  {name:'Cà rốt',  days:3, seed:12, sell:35,  model:'crop_carrot',  food:{h:22, m:30}},
+  turnip:  {name:'Củ cải',  days:4, seed:20, sell:60,  model:'crop_turnip',  food:{h:24, s:4, m:35}},
+  corn:    {name:'Ngô',     days:6, seed:35, sell:120, stages:['crops_cornStageA','crops_cornStageC','crops_cornStageD'], food:{h:35, m:45}},
+  pumpkin: {name:'Bí ngô',  days:7, seed:55, sell:190, model:'crop_pumpkin', food:{h:55, hp:12, s:8, m:80}},
+  melon:   {name:'Dưa hấu', days:9, seed:80, sell:300, model:'crop_melon',   food:{h:45, hp:20, s:12, m:90}},
 };
-const ITEMS = {wood:'Gỗ', stone:'Đá', fiber:'Sợi cỏ', berry:'Quả mọng', orb:'Cầu bắt', campfire:'Bộ lửa trại',
-  seed_carrot:'Hạt cà rốt', seed_tomato:'Hạt cà chua', seed_pumpkin:'Hạt bí ngô', carrot:'Cà rốt', tomato:'Cà chua', pumpkin:'Bí ngô'};
-const SELL = {wood:2, stone:3, fiber:1, berry:6, carrot:35, tomato:80, pumpkin:190};
-const FOODS = ['berry','carrot','tomato','pumpkin'];
-const FOOD_VAL = {berry:{h:12, m:15}, carrot:{h:22, m:30}, tomato:{h:28, s:5, m:40}, pumpkin:{h:55, hp:12, s:8, m:80}};
+const ITEMS = {wood:'Gỗ', stone:'Đá', fiber:'Sợi cỏ', berry:'Quả mọng', orb:'Cầu bắt', campfire:'Bộ lửa trại'};
+const SELL = {wood:2, stone:3, fiber:1, berry:6};
+const FOODS = ['berry'];
+const FOOD_VAL = {berry:{h:12, m:15}};
+for (const [k, c] of Object.entries(CROPS)){ ITEMS['seed_' + k] = 'Hạt ' + c.name.toLowerCase(); ITEMS[k] = c.name; SELL[k] = c.sell; FOODS.push(k); FOOD_VAL[k] = c.food; }
 const RECIPES = [
   {id:'axe', name:'Rìu', need:{wood:2, fiber:3}, tool:true, desc:'Chặt cây nhanh: 3 nhát, được 3 gỗ.'},
   {id:'pickaxe', name:'Cuốc chim', need:{wood:3, fiber:2}, tool:true, desc:'Đập đá để lấy đá.'},
@@ -258,15 +266,20 @@ const MOVES = {
   shadow:{name:'Vuốt Bóng', type:'dark', power:55}, nightmare:{name:'Ác Mộng', type:'dark', power:72},
 };
 const LEARN = {grass:'leafstorm', fire:'blaze', water:'wave', rock:'quake', dark:'nightmare'};
+// model = Kenney Cube Pets file; shape/color/acc = procedural fallback if the model cannot load
 const SPECIES = {
-  lamam:    {name:'Lá Mầm', type:'grass', color:0x86cf6e, acc:0x3f8f3a, base:[44,11,10,9],  moves:['tackle','vine'],      shape:'leaf'},
-  namlun:   {name:'Nấm Lùn', type:'grass', color:0xeadcc2, acc:0xc8443a, base:[52,10,12,6],  moves:['tackle','spore'],     shape:'mushroom'},
-  luacon:   {name:'Lửa Con', type:'fire',  color:0xf08a3a, acc:0xffd166, base:[40,13,9,11],  moves:['tackle','ember'],     shape:'fox'},
-  domdom:   {name:'Đom Đóm', type:'fire',  color:0xf2df74, acc:0xa8f06a, base:[34,12,8,14],  moves:['tackle','flash'],     shape:'bug', night:true},
-  giotsuong:{name:'Giọt Sương', type:'water', color:0x5ab3e6, acc:0xdaf2ff, base:[46,11,11,8], moves:['tackle','bubble'], shape:'drop'},
-  ruabot:   {name:'Rùa Bọt', type:'water', color:0x79c7a0, acc:0x4f6e40, base:[58,9,14,5],   moves:['tackle','bubble'],    shape:'turtle'},
-  dacuoi:   {name:'Đá Cuội', type:'rock',  color:0xa39e93, acc:0x6d675e, base:[54,12,15,4],  moves:['tackle','rockthrow'], shape:'rock'},
-  bongdem:  {name:'Bóng Đêm', type:'dark', color:0x3a2f55, acc:0xc6a2ff, base:[42,14,9,12],  moves:['tackle','shadow'],    shape:'ghost', night:true},
+  thomam:  {name:'Thỏ Mầm',   type:'grass', model:'bunny',       scale:.38, base:[44,11,10,10], moves:['tackle','vine'],      shape:'leaf',     color:0x86cf6e, acc:0x3f8f3a},
+  saula:   {name:'Sâu Lá',    type:'grass', model:'caterpillar', scale:.38, base:[52,10,12,6],  moves:['tackle','spore'],     shape:'mushroom', color:0xeadcc2, acc:0xc8443a},
+  huourung:{name:'Hươu Rừng', type:'grass', model:'deer',        scale:.42, base:[50,13,11,12], moves:['tackle','vine'],      shape:'leaf',     color:0x86cf6e, acc:0x3f8f3a},
+  caolua:  {name:'Cáo Lửa',   type:'fire',  model:'fox',         scale:.40, base:[40,13,9,11],  moves:['tackle','ember'],     shape:'fox',      color:0xf08a3a, acc:0xffd166},
+  ongdom:  {name:'Ong Đóm',   type:'fire',  model:'bee',         scale:.34, base:[34,12,8,14],  moves:['tackle','flash'],     shape:'bug',      color:0xf2df74, acc:0xa8f06a, night:true, fly:true, glow:0x3a3000},
+  sutuhoa: {name:'Sư Tử Hỏa', type:'fire',  model:'lion',        scale:.40, base:[52,15,11,11], moves:['tackle','ember'],     shape:'fox',      color:0xf08a3a, acc:0xffd166},
+  canhcut: {name:'Cánh Cụt',  type:'water', model:'penguin',     scale:.34, base:[46,11,11,8],  moves:['tackle','bubble'],    shape:'drop',     color:0x5ab3e6, acc:0xdaf2ff},
+  cuabot:  {name:'Cua Bọt',   type:'water', model:'crab',        scale:.30, base:[54,11,14,6],  moves:['tackle','bubble'],    shape:'turtle',   color:0x79c7a0, acc:0x4f6e40},
+  gaubang: {name:'Gấu Băng',  type:'water', model:'polar',       scale:.44, base:[60,13,12,6],  moves:['tackle','bubble'],    shape:'turtle',   color:0xdaf2ff, acc:0x5ab3e6},
+  voida:   {name:'Voi Đá',    type:'rock',  model:'elephant',    scale:.36, base:[62,12,15,4],  moves:['tackle','rockthrow'], shape:'rock',     color:0xa39e93, acc:0x6d675e},
+  lonrung: {name:'Lợn Rừng',  type:'rock',  model:'hog',         scale:.38, base:[52,13,13,7],  moves:['tackle','rockthrow'], shape:'rock',     color:0xa39e93, acc:0x6d675e},
+  meobong: {name:'Mèo Bóng',  type:'dark',  model:'cat',         scale:.38, base:[42,14,9,12],  moves:['tackle','shadow'],    shape:'ghost',    color:0x3a2f55, acc:0xc6a2ff, night:true, tint:0x5a4a88, glow:0x170c2a},
 };
 const ABIL = {
   grass:'Chăm cây: mỗi sáng, cây trồng có 50% cơ hội lớn thêm một ngày.',
@@ -289,15 +302,16 @@ const ICONS = {
   food:'<path d="M12 8.5c-4-2.2-8 .2-8 5 0 4.2 3.6 7.6 8 6.8 4.4.8 8-2.6 8-6.8 0-4.8-4-7.2-8-5z"/><path d="M12 8.5c0-2.2 1-4 3.2-5"/>',
   campfire:'<path d="M12 3c1.2 4 5 5 5 10a5 5 0 01-10 0c0-3 2-4.2 2-6.2 1 1 2 2.2 2 4.2 1-2 1.2-5 1-8z"/><path d="M4 21h16"/>',
 };
-const BLOCK = {tree:1, rock:1, bush:1, house:1, bin:1, shop:1, campfire:1};
-const STATIC = {house:1, bin:1, shop:1};
+const BLOCK = {tree:1, rock:1, bush:1, house:1, bin:1, shop:1, campfire:1, decor:1};
+const STATIC = {house:1, bin:1, shop:1, decor:1};
+const INSTANCED = {tree:1, rock:1, bush:1, grass:1};
 
 /* ================= state ================= */
 let state, tiles = [], objs = new Set(), wilds = [], battle = null;
 let mode = 'start'; // start | play | modal | battle | dead
 function defaultState(){
   return {seed: Math.floor(R()*1e9), day:1, hour:6, gold:120, pending:0, hp:100, hunger:100, sanity:100,
-    inv:{wood:0, stone:0, fiber:0, berry:3, orb:3, campfire:0, seed_carrot:6, seed_tomato:0, seed_pumpkin:0, carrot:0, tomato:0, pumpkin:0},
+    inv:Object.assign(Object.fromEntries(Object.keys(ITEMS).map(k => [k, 0])), {berry:3, orb:3, seed_carrot:6}),
     tools:{axe:false, pickaxe:false}, water:20, sel:0, seedSel:'carrot', foodSel:'berry', party:[], weather:'sun', uid:1, introDone:false};
 }
 const seasonIdx = () => Math.floor((state.day - 1) / 7) % 4;
@@ -392,8 +406,6 @@ const geoShop = () => cached('shop', () => {
   const P = [{g:BOX, c:0x9a6a3c, m:M(0,.45,.1,0,0,0,.96,.9,.5)}, {g:BOX, c:0x7c512c, m:M(0,.92,.1,0,0,0,1,.06,.56)},
     {g:CYL, c:0x7c512c, m:M(.45,.95,-.3,0,0,0,.04,1.9,.04)}, {g:CYL, c:0x7c512c, m:M(-.45,.95,-.3,0,0,0,.04,1.9,.04)},
     {g:CYL, c:0x7c512c, m:M(.45,.95,.32,0,0,0,.04,1.9,.04)}, {g:CYL, c:0x7c512c, m:M(-.45,.95,.32,0,0,0,.04,1.9,.04)},
-    {g:SPH, c:0xf0c9a0, m:M(0,1.25,-.2,0,0,0,.18)}, {g:CYL, c:0x4f7fb0, m:M(0,1.0,-.2,0,0,0,.18,.35,.16)},
-    {g:CYL, c:0x6b8f3a, m:M(0,1.43,-.2,0,0,0,.24,.04,.24)},
     {g:SPH, c:0xf08a24, m:M(-.25,1.0,.15,0,0,0,.08)}, {g:SPH, c:0xe0402a, m:M(0,1.0,.18,0,0,0,.08)}, {g:SPH, c:0xf09a2a, m:M(.25,1.02,.15,0,0,0,.11)}];
   for (let k = 0; k < 5; k++) P.push({g:BOX, c: k % 2 ? 0xf3ead3 : 0x5a9a4a, m:M(-.4+k*.2, 1.95, 0, .15, 0, 0, .2, .07, 1.05)});
   return merge(P);
@@ -468,11 +480,146 @@ function geoMon(id){
     return merge(P);
   });
 }
-function makeMonMesh(id){
-  const sp = SPECIES[id];
-  const mat = new THREE.MeshLambertMaterial({vertexColors:true, emissive: sp.shape === 'bug' ? 0x3a3300 : sp.shape === 'ghost' ? 0x1a0f2a : 0x000000});
-  const m = new THREE.Mesh(geoMon(id), mat); m.castShadow = true; m.userData.baseEmissive = mat.emissive.getHex(); return m;
+/* ================= 3D models (Kenney, CC0) ================= */
+const MODEL_FILES = [
+  ...Object.values(SPECIES).map(s => 'pets/animal-' + s.model + '.glb'),
+  'chars/character-male-a.glb', 'chars/character-female-b.glb',
+  ...['tool-axe','tool-hoe','tool-pickaxe','bucket','chest','barrel','signpost'].map(f => 'survival/' + f + '.glb'),
+  ...['tree_default','tree_default_dark','tree_default_fall','tree_oak','tree_oak_dark','tree_oak_fall','tree_detailed','tree_detailed_dark','tree_detailed_fall',
+      'tree_pineDefaultA','tree_pineRoundC','rock_largeA','rock_largeC','stone_largeB','plant_bushDetailed','grass_large','grass_leafsLarge',
+      'flower_redA','flower_yellowB','flower_purpleC','mushroom_redGroup','crop_carrot','crop_turnip','crop_pumpkin','crop_melon',
+      'crops_leafsStageA','crops_leafsStageB','crops_cornStageA','crops_cornStageC','crops_cornStageD','campfire_stones','log_stack'].map(f => 'nature/' + f + '.glb'),
+];
+const MODELS = {};
+function loadModels(onProgress){
+  if (!THREE.GLTFLoader) return Promise.resolve(0);
+  const loader = new THREE.GLTFLoader(); let done = 0, ok = 0;
+  const bundle = window.__MODEL_BUNDLE || {}; // optional base64 bundle for hosts that cannot serve .glb
+  const fromB64 = b => { const s = atob(b), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; };
+  return Promise.all(MODEL_FILES.map(f => new Promise(res => {
+    const got = g => { MODELS[f] = {scene: g.scene, clips: g.animations}; ok++; onProgress(++done / MODEL_FILES.length); res(); };
+    const fail = () => { onProgress(++done / MODEL_FILES.length); res(); };
+    if (bundle[f]) loader.parse(fromB64(bundle[f]), 'models/' + f.slice(0, f.lastIndexOf('/') + 1), got, fail);
+    else loader.load('models/' + f, got, undefined, fail);
+  }))).then(() => ok);
 }
+// glTF materials -> Lambert, keeping the scene's linear colour pipeline (authored colours are sRGB)
+const matCache = new Map();
+function lam(m, skinned){
+  const k = m.uuid + (skinned ? 's' : '');
+  if (matCache.has(k)) return matCache.get(k);
+  if (m.map) m.map.encoding = THREE.LinearEncoding;
+  const n = new THREE.MeshLambertMaterial({color: m.color.clone().convertLinearToSRGB(), map: m.map || null, skinning: !!skinned, vertexColors: m.vertexColors, transparent: m.transparent, side: m.side});
+  n.name = m.name || ''; matCache.set(k, n); return n;
+}
+const tintCache = new Map();
+function tinted(mat, hex, amt){
+  const k = mat.uuid + hex + amt; if (tintCache.has(k)) return tintCache.get(k);
+  const n = mat.clone(); n.color.lerp(new THREE.Color(hex), amt); n.name = mat.name; tintCache.set(k, n); return n;
+}
+function partsFromScene(sc, scale){
+  sc.updateMatrixWorld(true);
+  const root = new THREE.Matrix4().makeScale(scale, scale, scale), parts = [];
+  sc.traverse(o => { if (o.isMesh) parts.push({geo: o.geometry, mat: lam(o.material), m: root.clone().multiply(o.matrixWorld)}); });
+  return parts;
+}
+const P1 = geo => [{geo, mat: vcMat, m: new THREE.Matrix4()}];
+const tintParts = (parts, test, hex, amt) => parts.map(p => test(p.mat.name) ? Object.assign({}, p, {mat: tinted(p.mat, hex, amt)}) : p);
+const LEAFY = n => /leaf|grass|flower|plant/i.test(n);
+const berryParts = () => P1(cached('berries', () => { const P = []; for (let k = 0; k < 9; k++){ const a = k * .7; P.push({g:SPH, c:0xd6304a, m:M(Math.cos(a) * (.22 + (k % 2) * .1), .2 + (k % 3) * .1, Math.sin(a) * (.22 + (k % 2) * .1), 0,0,0,.055)}); } return merge(P); }));
+const TPL = {};
+function nat(f, scale){ const md = MODELS['nature/' + f + '.glb']; return md ? partsFromScene(md.scene, scale) : null; }
+function tplFor(key){
+  if (TPL[key]) return TPL[key];
+  const [kind, a, b, c] = key.split(':'); let parts = null;
+  const s = +b;
+  switch (kind){
+    case 'tree': {
+      const v = +a, decid = ['tree_default','tree_oak','tree_detailed'], pines = ['tree_pineDefaultA','tree_pineRoundC'];
+      parts = v < 3 ? nat(decid[v] + (s === 1 ? '_dark' : s === 2 ? '_fall' : ''), 1.75) : nat(pines[v - 3], 1.9);
+      if (parts && s < 2) parts = tintParts(parts, n => /leaf/i.test(n), s ? 0x3f8a2e : 0x5aa83f, .42);
+      if (parts && s === 3) parts = tintParts(parts, n => /leaf/i.test(n), 0xf2f6f8, v < 3 ? .8 : .55);
+      if (!parts) parts = P1(geoTree(v < 3 ? 1 : 0, s));
+      break;
+    }
+    case 'rock': parts = nat(['rock_largeA','rock_largeC','stone_largeB'][+a], .9); if (parts) parts = tintParts(parts, n => /grass/i.test(n), [0x5aa83f,0x3f8a2e,0xa49a48,0xeef3f5][s], .55); else parts = P1(geoRock(+a % 2)); break;
+    case 'bush':
+      parts = nat('plant_bushDetailed', 1.5);
+      if (parts){ if (s < 2) parts = tintParts(parts, LEAFY, 0x4f9a3a, .4); if (s === 2) parts = tintParts(parts, LEAFY, 0xc9822e, .45); if (s === 3) parts = tintParts(parts, LEAFY, 0xeef3f5, .6); if (+a) parts = parts.concat(berryParts()); }
+      else parts = P1(geoBush(+a, s));
+      break;
+    case 'grass': {
+      const files = ['grass_large','grass_leafsLarge','flower_redA','flower_yellowB','flower_purpleC','mushroom_redGroup'], sc = [1.8,1.7,2.3,2.6,2.6,2.3];
+      const v = s === 3 && +a >= 2 && +a <= 4 ? 0 : +a;
+      parts = nat(files[v], sc[v]);
+      if (parts && s < 2) parts = tintParts(parts, n => /grass|leaf/i.test(n), 0x5aa83f, .45);
+      if (parts && s === 2) parts = tintParts(parts, n => /grass/i.test(n), 0xb8a04a, .45);
+      if (parts && s === 3) parts = tintParts(parts, n => /grass|leaf/i.test(n), 0xe8eef0, .65);
+      if (!parts) parts = P1(geoGrass(s));
+      break;
+    }
+    case 'crop': {
+      const C = CROPS[a], st = +b, dead = c === '1';
+      if (st === 0) parts = P1(geoCrop('carrot', 0, false));
+      else {
+        const f = C.stages ? C.stages[st - 1] : st === 1 ? 'crops_leafsStageA' : st === 2 ? 'crops_leafsStageB' : C.model;
+        parts = nat(f, 1.15);
+        if (!parts) parts = P1(geoCrop(a === 'carrot' ? 'carrot' : a === 'pumpkin' || a === 'melon' ? 'pumpkin' : 'tomato', st, dead));
+        else if (dead) parts = tintParts(parts, () => true, 0x7a5a30, .75);
+      }
+      break;
+    }
+  }
+  return TPL[key] = parts;
+}
+// One InstancedMesh per template part: hundreds of trees cost a handful of draw calls
+const ZERO = new THREE.Matrix4().makeScale(0, 0, 0), _m4 = new THREE.Matrix4();
+class Pool {
+  constructor(parts, shadow){ this.parts = parts; this.shadow = shadow; this.cap = 0; this.meshes = []; this.free = []; this.grow(32); }
+  grow(cap){
+    const old = this.meshes;
+    this.meshes = this.parts.map((p, k) => {
+      const im = new THREE.InstancedMesh(p.geo, p.mat, cap); im.castShadow = this.shadow; im.frustumCulled = false;
+      for (let i = 0; i < cap; i++){ if (old[k] && i < this.cap){ old[k].getMatrixAt(i, _m4); im.setMatrixAt(i, _m4); } else im.setMatrixAt(i, ZERO); }
+      if (old[k]){ scene.remove(old[k]); old[k].dispose(); }
+      scene.add(im); return im;
+    });
+    for (let i = cap - 1; i >= this.cap; i--) this.free.push(i);
+    this.cap = cap;
+  }
+  add(m){ if (!this.free.length) this.grow(this.cap * 2); const s = this.free.pop(); this.set(s, m); return s; }
+  set(s, m){ this.parts.forEach((p, k) => { _m4.multiplyMatrices(m, p.m); this.meshes[k].setMatrixAt(s, _m4); this.meshes[k].instanceMatrix.needsUpdate = true; }); }
+  remove(s){ this.meshes.forEach(im => { im.setMatrixAt(s, ZERO); im.instanceMatrix.needsUpdate = true; }); this.free.push(s); }
+}
+const POOLS = {};
+const poolFor = key => POOLS[key] || (POOLS[key] = new Pool(tplFor(key), !/^grass/.test(key)));
+// Animation helper: looping locomotion plus one-shot actions that lock it briefly
+class Anim {
+  constructor(root, clips){ this.mixer = new THREE.AnimationMixer(root); this.a = {}; for (const c of clips || []) this.a[c.name] = this.mixer.clipAction(c); this.cur = null; this.lock = 0; }
+  play(n, ts = 1){ const a = this.a[n]; if (!a) return; a.timeScale = ts; if (this.cur === a) return; a.reset(); a.setLoop(THREE.LoopRepeat, Infinity); a.play(); if (this.cur) a.crossFadeFrom(this.cur, .18, false); this.cur = a; }
+  once(n, ts = 1){ const a = this.a[n]; if (!a) return 0; a.reset(); a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.timeScale = ts; a.play(); if (this.cur && this.cur !== a) a.crossFadeFrom(this.cur, .08, false); this.cur = a; this.lock = a.getClip().duration / ts; return this.lock; }
+  loco(n, ts){ if (this.lock <= 0) this.play(n, ts); }
+  update(dt){ this.lock -= dt; this.mixer.update(dt); }
+}
+const NOANIM = {play(){}, once(){ return 0; }, loco(){}, update(){}, lock:0};
+function prepModel(root, skinned, own){
+  root.traverse(o => { if (o.isMesh){ o.material = lam(o.material, o.isSkinnedMesh); if (own) o.material = o.material.clone(); o.castShadow = true; if (o.isSkinnedMesh) o.frustumCulled = false; } });
+  return root;
+}
+// A creature: Group (position/rotation/level scale) > model (species scale). userData holds anim + materials for hit flashes.
+function makeMonMesh(id){
+  const sp = SPECIES[id], md = MODELS['pets/animal-' + sp.model + '.glb'], g = new THREE.Group(); let mats = [], anim = NOANIM;
+  if (md){
+    const inner = prepModel(md.scene.clone(true), false, true); inner.scale.setScalar(sp.scale); g.add(inner);
+    inner.traverse(o => { if (o.isMesh){ if (sp.tint) o.material.color.multiply(new THREE.Color(sp.tint)); if (sp.glow) o.material.emissive.setHex(sp.glow); mats.push(o.material); } });
+    anim = new Anim(inner, md.clips); anim.play('idle', .8 + R() * .4);
+  } else {
+    const mat = new THREE.MeshLambertMaterial({vertexColors:true, emissive: sp.glow || 0}); const m = new THREE.Mesh(geoMon(id), mat); m.castShadow = true; g.add(m); mats = [mat];
+  }
+  g.userData = {anim, mats, glow: sp.glow || 0};
+  return g;
+}
+function flashMon(g, on){ for (const m of g.userData.mats) m.emissive.setHex(on ? 0xcc2211 : g.userData.glow); }
 
 /* ground */
 const gcan = document.createElement('canvas'); gcan.width = W * PX; gcan.height = H * PX;
@@ -515,69 +662,87 @@ function genTerrain(seed){
     tiles[j * W + i] = {t, wet:false, obj:null, crop:null};
   }
 }
+const geoLogs = () => cached('logs', () => merge([{g:CYL, c:0x5e3b20, m:M(0,.08,0,0,.5,Math.PI/2,.06,.6,.06)}, {g:CYL, c:0x6b4526, m:M(0,.12,0,0,-.7,Math.PI/2,.06,.6,.06)}]));
+function modelObj(file, scale){ const md = MODELS[file]; if (!md) return null; const r = prepModel(md.scene.clone(true), false, false); r.scale.setScalar(scale); return {root: r, clips: md.clips}; }
+function instKey(o){
+  const s = seasonIdx();
+  switch (o.kind){ case 'tree': return `tree:${o.v}:${s}`; case 'rock': return `rock:${o.v}:${s}`; case 'bush': return `bush:${o.berries ? 1 : 0}:${s}`; case 'grass': return `grass:${o.v}:${s}`; }
+}
+function placeInst(o){
+  const h = hash2(o.i * 3 + 1, o.j * 5 + 2), ox = (h - .5) * .2, oz = (hash2(o.j, o.i) - .5) * .2;
+  const sc = o.kind === 'tree' ? .8 + h * .45 : .85 + h * .3;
+  o.base = new THREE.Matrix4().compose(_v.set(o.i + .5 + ox, 0, o.j + .5 + oz), _q.setFromEuler(_e.set(0, h * Math.PI * 2, 0)), _s.set(sc, sc, sc));
+  o.key = instKey(o); o.slot = poolFor(o.key).add(o.base);
+}
 function objMesh(o){
-  const s = seasonIdx(), h = hash2(o.i * 3 + 1, o.j * 5 + 2);
-  let geo, mesh;
+  let mesh;
   switch (o.kind){
-    case 'tree': geo = geoTree(o.v, s); break;
-    case 'rock': geo = geoRock(o.v); break;
-    case 'bush': geo = geoBush(o.berries ? 1 : 0, s); break;
-    case 'grass': geo = geoGrass(s); break;
-    case 'house': geo = geoHouse(); break;
-    case 'bin': geo = geoBin(); break;
-    case 'shop': geo = geoShop(); break;
-    case 'campfire': geo = geoCampfire(); break;
+    case 'house': mesh = new THREE.Mesh(geoHouse(), vcMat); mesh.receiveShadow = true; break;
+    case 'bin': { const m = modelObj('survival/chest.glb', 3.3); if (m){ mesh = new THREE.Group(); mesh.add(m.root); o.anim = new Anim(m.root, m.clips); } else mesh = new THREE.Mesh(geoBin(), vcMat); break; }
+    case 'shop': {
+      mesh = new THREE.Group(); mesh.add(new THREE.Mesh(geoShop(), vcMat));
+      const md = MODELS['chars/character-female-b.glb'];
+      if (md){ const c = prepModel(md.scene, true); c.scale.setScalar(2.1); c.position.set(0, 0, -.3); mesh.add(c); o.anim = new Anim(c, md.clips); o.anim.play('idle'); }
+      break;
+    }
+    case 'campfire': {
+      mesh = new THREE.Group(); const st = modelObj('nature/campfire_stones.glb', 1.5);
+      if (st){ mesh.add(st.root); mesh.add(new THREE.Mesh(geoLogs(), vcMat)); } else mesh.add(new THREE.Mesh(geoCampfire(), vcMat));
+      const flame = new THREE.Group();
+      const f1 = new THREE.Mesh(CONE, new THREE.MeshBasicMaterial({color:0xff7a2a})); f1.scale.set(.2,.55,.2); f1.position.y = .35;
+      const f2 = new THREE.Mesh(CONE, new THREE.MeshBasicMaterial({color:0xffd166})); f2.scale.set(.11,.35,.11); f2.position.y = .28;
+      flame.add(f1, f2); mesh.add(flame); o.flame = flame;
+      break;
+    }
+    case 'decor': { const m = modelObj(o.file, o.scale); mesh = m ? m.root : new THREE.Mesh(geoBin(), vcMat); break; }
   }
-  mesh = new THREE.Mesh(geo, vcMat);
-  mesh.castShadow = o.kind !== 'grass'; mesh.receiveShadow = o.kind === 'house';
-  const ox = STATIC[o.kind] ? 0 : (h - .5) * .2, oz = STATIC[o.kind] ? 0 : (hash2(o.j, o.i) - .5) * .2;
-  mesh.position.set(o.i + .5 + ox, 0, o.j + .5 + oz);
-  if (!STATIC[o.kind]){ mesh.rotation.y = h * Math.PI * 2; const sc = o.kind === 'tree' ? .85 + h * .4 : .85 + h * .3; mesh.scale.setScalar(sc); }
-  if (o.kind === 'campfire'){
-    const flame = new THREE.Group();
-    const f1 = new THREE.Mesh(CONE, new THREE.MeshBasicMaterial({color:0xff7a2a})); f1.scale.set(.2,.55,.2); f1.position.y = .35;
-    const f2 = new THREE.Mesh(CONE, new THREE.MeshBasicMaterial({color:0xffd166})); f2.scale.set(.11,.35,.11); f2.position.y = .28;
-    flame.add(f1, f2); mesh.add(flame); o.flame = flame; mesh.rotation.y = 0; mesh.scale.setScalar(1);
-  }
+  mesh.traverse(c => { if (c.isMesh && !c.material.isMeshBasicMaterial) c.castShadow = true; });
+  mesh.position.set(o.i + .5, 0, o.j + .5); if (o.rot) mesh.rotation.y = o.rot;
   return mesh;
 }
 function addObj(kind, i, j, data = {}){
   const t = T(i, j); if (!t || t.obj) return null;
   const o = Object.assign({kind, i, j, v:0, hp:0}, data);
-  o.mesh = objMesh(o); scene.add(o.mesh); t.obj = o; objs.add(o); return o;
+  if (INSTANCED[kind]) placeInst(o); else { o.mesh = objMesh(o); scene.add(o.mesh); }
+  t.obj = o; objs.add(o); return o;
 }
-function addStatic(kind, i, j, w = 1, d = 1){
-  const o = {kind, i, j}; o.mesh = objMesh(o);
-  if (w > 1) o.mesh.position.set(i + .5, 0, j + .5);
+function addStatic(kind, i, j, w = 1, d = 1, extra = {}){
+  const o = Object.assign({kind, i, j}, extra); o.mesh = objMesh(o);
   scene.add(o.mesh); objs.add(o);
   for (let dj = -Math.floor(d / 2); dj <= Math.floor(d / 2); dj++) for (let di = -Math.floor(w / 2); di <= Math.floor(w / 2); di++){ const t = T(i + di, j + dj); if (t) t.obj = o; }
   return o;
 }
-function removeObj(o){ scene.remove(o.mesh); const t = T(o.i, o.j); if (t && t.obj === o) t.obj = null; objs.delete(o); }
-function refreshObjMesh(o){ const p = o.mesh.position.clone(), r = o.mesh.rotation.y, sc = o.mesh.scale.x; scene.remove(o.mesh); o.mesh = objMesh(o); o.mesh.position.copy(p); o.mesh.rotation.y = r; o.mesh.scale.setScalar(sc); scene.add(o.mesh); }
+function dropVisual(o){ if (o.key){ POOLS[o.key].remove(o.slot); o.key = null; } else if (o.mesh) scene.remove(o.mesh); }
+function removeObj(o){ dropVisual(o); const t = T(o.i, o.j); if (t && t.obj === o) t.obj = null; objs.delete(o); }
+function refreshObjMesh(o){ if (!INSTANCED[o.kind]) return; dropVisual(o); placeInst(o); }
 function clearWorld(){
-  for (const o of objs) scene.remove(o.mesh); objs.clear();
-  for (const t of tiles) if (t && t.crop) scene.remove(t.crop.mesh);
+  for (const o of objs) dropVisual(o); objs.clear();
+  for (const t of tiles) if (t && t.crop) removeCrop(t);
   for (const w of wilds) scene.remove(w.mesh); wilds = [];
 }
+let binObj = null, shopObj = null;
 function buildStatics(){
   addStatic('house', HX, HZ, 3, 3);
-  addStatic('bin', HX + 3, HZ + 1);
-  addStatic('shop', HX - 4, HZ + 1);
+  binObj = addStatic('bin', HX + 3, HZ + 1);
+  shopObj = addStatic('shop', HX - 4, HZ + 1);
+  addStatic('decor', HX + 2, HZ - 1, 1, 1, {file:'survival/barrel.glb', scale:2.6});
+  addStatic('decor', HX - 2, HZ - 1, 1, 1, {file:'nature/log_stack.glb', scale:1.7, rot:Math.PI / 2});
+  addStatic('decor', HX + 2, HZ + 3, 1, 1, {file:'survival/signpost.glb', scale:2.4, rot:-.3});
 }
+const grassVariant = (r, forest) => r < .42 ? 0 : r < .72 ? 1 : r < .8 ? 2 : r < .88 ? 3 : r < .94 ? 4 : (forest > .5 ? 5 : 1);
 function genObjects(seed){
   const rng = mulberry32(seed + 7);
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++){
     const t = T(i, j); if (t.obj || t.t === 'water' || t.t === 'path') continue;
     const edge = Math.min(i, j, W - 1 - i, H - 1 - j);
-    if (edge < 2){ if (t.t === 'grass') addObj('tree', i, j, {v: rng() < .6 ? 0 : 1}); continue; }
+    if (edge < 2){ if (t.t === 'grass') addObj('tree', i, j, {v: rng() < .6 ? 3 + (rng() < .5 ? 0 : 1) : Math.floor(rng() * 3)}); continue; }
     if (inFarm(i, j)) continue;
     const forest = vnoise(i * .12, j * .12, seed % 991 + 5), rocky = vnoise(i * .15, j * .15, seed % 983 + 11), meadow = vnoise(i * .2, j * .2, seed % 977 + 3);
     const r = rng();
-    if (t.t === 'grass' && r < (forest > .58 ? .26 : .025)) addObj('tree', i, j, {v: forest > .7 ? 0 : (rng() < .5 ? 0 : 1)});
-    else if (r < (rocky > .62 ? .12 : .015) + .03) { if (rng() < .5) addObj('rock', i, j, {v: rng() < .5 ? 0 : 1}); }
+    if (t.t === 'grass' && r < (forest > .58 ? .26 : .025)) addObj('tree', i, j, {v: forest > .7 ? 3 + (rng() < .5 ? 0 : 1) : Math.floor(rng() * 5)});
+    else if (r < (rocky > .62 ? .12 : .015) + .03) { if (rng() < .5) addObj('rock', i, j, {v: Math.floor(rng() * 3)}); }
     else if (t.t === 'grass' && r < .06) addObj('bush', i, j, {berries: rng() < .7, regrow: 0});
-    else if (t.t === 'grass' && meadow > .56 && r < .5) addObj('grass', i, j);
+    else if (t.t === 'grass' && meadow > .56 && r < .5) addObj('grass', i, j, {v: grassVariant(rng(), forest)});
   }
   // a few starter resources near the farm edge
   [[22,24],[22,27],[42,20],[42,29],[25,35],[38,36]].forEach(([i,j], k) => addObj(k % 2 ? 'bush' : 'tree', i, j, {berries:true, v:1}));
@@ -585,8 +750,19 @@ function genObjects(seed){
 }
 
 /* ================= player & companion ================= */
-const player = {pos: new THREE.Vector3(HX + .5, 0, HZ + 3.5), yaw: 0, mesh: new THREE.Mesh(geoPlayer(), vcMat), walk: 0};
-player.mesh.castShadow = true; scene.add(player.mesh);
+const player = {pos: new THREE.Vector3(HX + .5, 0, HZ + 3.5), yaw: 0, mesh: new THREE.Group(), walk: 0, anim: NOANIM, tools: {}};
+scene.add(player.mesh);
+function buildPlayer(){
+  const md = MODELS['chars/character-male-a.glb'];
+  if (!md){ const m = new THREE.Mesh(geoPlayer(), vcMat); m.castShadow = true; player.mesh.add(m); return; }
+  const c = prepModel(md.scene, true); c.scale.setScalar(2.1); player.mesh.add(c);
+  player.anim = new Anim(c, md.clips); player.anim.play('idle');
+  const arm = c.getObjectByName('arm-right'); if (!arm) return;
+  const hold = new THREE.Group(); hold.position.set(HOLD.p[0], HOLD.p[1], HOLD.p[2]); hold.rotation.set(HOLD.r[0], HOLD.r[1], HOLD.r[2]); arm.add(hold); player.hold = hold;
+  for (const [id, f] of [['hoe','tool-hoe'],['axe','tool-axe'],['pickaxe','tool-pickaxe'],['can','bucket']]){ const m = modelObj('survival/' + f + '.glb', id === 'can' ? 1.1 : 1.5); if (m){ m.root.visible = false; hold.add(m.root); player.tools[id] = m.root; } }
+}
+const HOLD = {p:[-.07, -.17, .02], r:[Math.PI / 2, 0, 0]};
+function showTool(){ const id = HOT[state.sel].id; for (const k in player.tools) player.tools[k].visible = k === id && (k === 'hoe' || k === 'can' || state.tools[k]); }
 const companion = {mon: null, mesh: null, pos: new THREE.Vector3(), walk: 0};
 function setCompanion(mon){
   if (companion.mesh){ scene.remove(companion.mesh); companion.mesh = null; }
@@ -597,7 +773,8 @@ function setCompanion(mon){
   companion.mesh.position.copy(companion.pos);
   monScale(companion.mesh, mon);
 }
-function monScale(mesh, mon){ mesh.scale.setScalar(clamp(.55 + mon.lvl * .015, .55, .95)); }
+const lvlScale = mon => clamp(.85 + mon.lvl * .015, .85, 1.35);
+function monScale(mesh, mon){ mesh.scale.setScalar(lvlScale(mon)); }
 const healthy = () => state.party.filter(m => m.hp > 0);
 const followMon = () => state.party[0] && state.party[0].hp > 0 ? state.party[0] : healthy()[0] || null;
 function refreshCompanion(){ const m = followMon(); if (m !== companion.mon) setCompanion(m); else if (m && companion.mesh) monScale(companion.mesh, m); }
@@ -618,26 +795,30 @@ const portrait = (() => {
   return (cv, sp) => {
     try {
       if (!r){ r = new THREE.WebGLRenderer({alpha:true, antialias:true, preserveDrawingBuffer:true}); r.setSize(168, 168); }
-      const m = makeMonMesh(sp); m.rotation.y = -.35; sc.add(m); r.render(sc, cam); sc.remove(m);
+      const m = makeMonMesh(sp); m.rotation.y = -.35; m.userData.anim.update(.3); sc.add(m); r.render(sc, cam); sc.remove(m);
       const ctx = cv.getContext('2d'); cv.width = 168; cv.height = 168; ctx.drawImage(r.domElement, 0, 0);
     } catch (e) { /* portraits are decorative */ }
   };
 })();
 
 /* ================= wild creatures ================= */
+const GEM = new THREE.OctahedronGeometry(.09, 0);
 function spawnWild(sp, lvl, x, z){
   const mon = makeMon(sp, lvl), mesh = makeMonMesh(sp); monScale(mesh, mon);
+  const gem = new THREE.Mesh(GEM, new THREE.MeshBasicMaterial({color: new THREE.Color(TYPES[SPECIES[sp].type].c)})); gem.position.y = 1.05; mesh.add(gem); mesh.userData.gem = gem;
   mesh.position.set(x, 0, z); scene.add(mesh);
   wilds.push({mon, mesh, pos: new THREE.Vector3(x, 0, z), target: new THREE.Vector3(x, 0, z), timer: 0, cooldown: 1.5, hitCd: 0, walk: R() * 10});
 }
 function removeWild(w){ scene.remove(w.mesh); wilds = wilds.filter(x => x !== w); }
 function habitat(i, j){
-  let water = 0, rock = 0, grass = 0;
-  for (let dj = -3; dj <= 3; dj++) for (let di = -3; di <= 3; di++){ const t = T(i + di, j + dj); if (!t) continue; if (t.t === 'water') water++; if (t.obj && t.obj.kind === 'rock') rock++; if (t.obj && t.obj.kind === 'grass') grass++; }
-  if (water > 3) return R() < .65 ? 'giotsuong' : 'ruabot';
-  if (rock > 2 && R() < .7) return 'dacuoi';
-  if (grass > 4) return R() < .6 ? 'lamam' : 'namlun';
-  return pick(['lamam','luacon','luacon','namlun','dacuoi','giotsuong']);
+  let water = 0, rock = 0, grass = 0, trees = 0;
+  for (let dj = -3; dj <= 3; dj++) for (let di = -3; di <= 3; di++){ const t = T(i + di, j + dj); if (!t) continue; if (t.t === 'water') water++; const k = t.obj && t.obj.kind; if (k === 'rock') rock++; else if (k === 'grass') grass++; else if (k === 'tree') trees++; }
+  if (Math.hypot(i - HX, j - HZ) > 24 && R() < .12) return 'sutuhoa';
+  if (water > 3) return seasonIdx() === 3 && R() < .5 ? 'gaubang' : R() < .55 ? 'canhcut' : R() < .85 ? 'cuabot' : 'gaubang';
+  if (rock > 2 && R() < .7) return R() < .55 ? 'voida' : 'lonrung';
+  if (trees > 8 && R() < .35) return 'huourung';
+  if (grass > 4) return R() < .6 ? 'thomam' : 'saula';
+  return pick(['thomam','caolua','caolua','saula','lonrung','canhcut','huourung']);
 }
 let spawnTimer = 0;
 function trySpawn(){
@@ -648,11 +829,11 @@ function trySpawn(){
     const i = Math.floor(x), j = Math.floor(z);
     if (!T(i, j) || !canStand(x, z)) continue;
     let sp;
-    if (night) sp = R() < .62 ? 'bongdem' : 'domdom';
+    if (night) sp = R() < .62 ? 'meobong' : 'ongdom';
     else { if (inFarm(i, j)) continue; sp = habitat(i, j); }
-    if (state.sanity < 30 && R() < .45) sp = 'bongdem';
+    if (state.sanity < 30 && R() < .45) sp = 'meobong';
     const dist = Math.hypot(x - HX, z - HZ);
-    const lvl = clamp(2 + Math.floor(state.day / 2) + Math.floor(dist / 12) + Math.floor(R() * 3) + (sp === 'bongdem' ? 1 : 0), 2, 40);
+    const lvl = clamp(2 + Math.floor(state.day / 2) + Math.floor(dist / 12) + Math.floor(R() * 3) + (sp === 'meobong' || sp === 'sutuhoa' ? 2 : 0), 2, 40);
     spawnWild(sp, lvl, x, z); return;
   }
 }
@@ -777,6 +958,7 @@ function updateHud(force){
   HOT.forEach((hh, i) => { const el = $('#slot' + i); el.classList.toggle('sel', state.sel === i); el.classList.toggle('locked', (hh.id === 'axe' && !state.tools.axe) || (hh.id === 'pickaxe' && !state.tools.pickaxe)); el.querySelector('.sn').textContent = slotSub(hh.id); });
   const pm = $('#partyMini');
   pm.innerHTML = state.party.map((mn, i) => { const st = stats(mn); return `<div class="pm panel ${i === 0 ? 'lead' : ''} ${mn.hp <= 0 ? 'ko' : ''}"><div class="top"><span>${esc(SPECIES[mn.sp].name)}</span><span>Lv ${mn.lvl}</span></div><div class="mini-track"><i style="width:${mn.hp / st.maxHp * 100}%"></i></div></div>`; }).join('');
+  showTool();
   $('#vignette').style.opacity = state.sanity < 35 ? (1 - state.sanity / 35) * .9 : 0;
 }
 
@@ -785,7 +967,7 @@ function frontTile(){ const fx = player.pos.x + Math.sin(player.yaw) * .85, fz =
 function give(item, n, quiet){ state.inv[item] = (state.inv[item] || 0) + n; if (!quiet) msg(`+${n} ${ITEMS[item]}`, 'good'); }
 function getAction(){
   const tool = HOT[state.sel].id, inv = state.inv;
-  if (tool === 'food') return inv[state.foodSel] > 0 ? {label:`Ăn ${ITEMS[state.foodSel]}`, fn:() => eat(state.foodSel)} : {label:`Hết ${ITEMS[state.foodSel]} · R để đổi món`};
+  if (tool === 'food') return inv[state.foodSel] > 0 ? {label:`Ăn ${ITEMS[state.foodSel]}`, fn:() => eat(state.foodSel), an:'emote-yes'} : {label:`Hết ${ITEMS[state.foodSel]} · R để đổi món`};
   const [ti, tj] = frontTile(), t = T(ti, tj); if (!t) return null;
   const o = t.obj;
   if (o){
@@ -793,38 +975,38 @@ function getAction(){
       case 'house': return isNight() ? {label:'Đi ngủ (lưu game)', fn:sleep} : {label:'Nhà của bạn · ngủ được sau 18:00', fn:() => msg('Trời còn sáng, hãy làm việc đã! Có thể ngủ sau 18:00.')};
       case 'bin': return {label:'Thùng hàng: bán nông sản', fn:openBin};
       case 'shop': return {label:'Cửa hàng hạt giống', fn:openShop};
-      case 'campfire': return inv.wood > 0 ? {label:`Thêm gỗ vào lửa (${Math.ceil(o.fuel)}s)`, fn:() => feedFire(o)} : {label:`Lửa trại ${o.fuel > 0 ? Math.ceil(o.fuel) + 's' : 'đã tắt'} · cần gỗ`};
-      case 'bush': return o.berries ? {label:'Hái quả mọng', fn:() => pickBush(o)} : {label:'Bụi cây chưa ra quả'};
+      case 'campfire': return inv.wood > 0 ? {label:`Thêm gỗ vào lửa (${Math.ceil(o.fuel)}s)`, fn:() => feedFire(o), an:'interact-right'} : {label:`Lửa trại ${o.fuel > 0 ? Math.ceil(o.fuel) + 's' : 'đã tắt'} · cần gỗ`};
+      case 'bush': return o.berries ? {label:'Hái quả mọng', fn:() => pickBush(o), an:'pick-up'} : {label:'Bụi cây chưa ra quả'};
       case 'tree':
-        if (tool === 'axe' && state.tools.axe) return {label:'Chặt cây', fn:() => chop(o, true)};
-        if (tool === 'hand') return {label:'Bẻ cành bằng tay (chậm)', fn:() => chop(o, false)};
+        if (tool === 'axe' && state.tools.axe) return {label:'Chặt cây', fn:() => chop(o, true), an:'attack-melee-right'};
+        if (tool === 'hand') return {label:'Bẻ cành bằng tay (chậm)', fn:() => chop(o, false), an:'attack-melee-right'};
         return {label: state.tools.axe ? 'Chọn Rìu (phím 4) để chặt' : 'Chọn Tay để bẻ cành, hoặc chế tạo Rìu'};
       case 'rock':
-        if (tool === 'pickaxe' && state.tools.pickaxe) return {label:'Đập đá', fn:() => mine(o)};
+        if (tool === 'pickaxe' && state.tools.pickaxe) return {label:'Đập đá', fn:() => mine(o), an:'attack-melee-right'};
         return {label: state.tools.pickaxe ? 'Chọn Cuốc chim (phím 5)' : 'Cần Cuốc chim để đập đá'};
       case 'grass':
-        if (tool === 'hoe') return {label:'Cuốc đất', fn:() => { removeObj(o); till(ti, tj); }};
-        return {label:'Nhổ cỏ (lấy sợi cỏ)', fn:() => { removeObj(o); give('fiber', 1 + (R() < .4 ? 1 : 0)); }};
+        if (tool === 'hoe') return {label:'Cuốc đất', fn:() => { removeObj(o); till(ti, tj); }, an:'attack-melee-right'};
+        return {label:'Nhổ cỏ (lấy sợi cỏ)', fn:() => { removeObj(o); give('fiber', 1 + (R() < .4 ? 1 : 0)); }, an:'pick-up'};
     }
   }
   if (t.crop){
     const c = t.crop, D = CROPS[c.type].days;
-    if (c.dead) return {label:'Dọn cây héo', fn:() => removeCrop(t)};
-    if (c.days >= D) return {label:`Thu hoạch ${CROPS[c.type].name}`, fn:() => harvest(t)};
-    if (tool === 'can' && !t.wet) return state.water > 0 ? {label:'Tưới nước', fn:() => water(ti, tj)} : {label:'Bình hết nước · ra ao múc'};
+    if (c.dead) return {label:'Dọn cây héo', fn:() => removeCrop(t), an:'pick-up'};
+    if (c.days >= D) return {label:`Thu hoạch ${CROPS[c.type].name}`, fn:() => harvest(t), an:'pick-up'};
+    if (tool === 'can' && !t.wet) return state.water > 0 ? {label:'Tưới nước', fn:() => water(ti, tj), an:'interact-right'} : {label:'Bình hết nước · ra ao múc'};
     return {label:`${CROPS[c.type].name}: còn ${D - c.days} ngày${t.wet ? ' · đã tưới' : ' · cần tưới'}`};
   }
   switch (tool){
-    case 'hoe': if (t.t === 'grass' || t.t === 'sand') return {label:'Cuốc đất', fn:() => till(ti, tj)}; break;
+    case 'hoe': if (t.t === 'grass' || t.t === 'sand') return {label:'Cuốc đất', fn:() => till(ti, tj), an:'attack-melee-right'}; break;
     case 'can':
-      if (t.t === 'water') return {label:`Múc nước (${state.water}/20)`, fn:() => { state.water = 20; msg('Đã đổ đầy bình tưới.'); }};
-      if (t.t === 'tilled' && !t.wet) return state.water > 0 ? {label:'Tưới đất', fn:() => water(ti, tj)} : {label:'Bình hết nước · ra ao múc'};
+      if (t.t === 'water') return {label:`Múc nước (${state.water}/20)`, fn:() => { state.water = 20; msg('Đã đổ đầy bình tưới.'); }, an:'interact-right'};
+      if (t.t === 'tilled' && !t.wet) return state.water > 0 ? {label:'Tưới đất', fn:() => water(ti, tj), an:'interact-right'} : {label:'Bình hết nước · ra ao múc'};
       break;
     case 'seeds':
-      if (t.t === 'tilled') return inv['seed_' + state.seedSel] > 0 ? {label:`Gieo ${CROPS[state.seedSel].name}`, fn:() => plant(ti, tj, state.seedSel)} : {label:`Hết hạt ${CROPS[state.seedSel].name} · R đổi loại / mua ở cửa hàng`};
+      if (t.t === 'tilled') return inv['seed_' + state.seedSel] > 0 ? {label:`Gieo ${CROPS[state.seedSel].name}`, fn:() => plant(ti, tj, state.seedSel), an:'interact-right'} : {label:`Hết hạt ${CROPS[state.seedSel].name} · R đổi loại / mua ở cửa hàng`};
       break;
     case 'campfire':
-      if (inv.campfire > 0 && (t.t === 'grass' || t.t === 'sand' || t.t === 'path')) return {label:'Đặt lửa trại', fn:() => { inv.campfire--; addObj('campfire', ti, tj, {fuel:90}); msg('Lửa trại bùng cháy. Thêm gỗ để giữ lửa.', 'good'); }};
+      if (inv.campfire > 0 && (t.t === 'grass' || t.t === 'sand' || t.t === 'path')) return {label:'Đặt lửa trại', fn:() => { inv.campfire--; addObj('campfire', ti, tj, {fuel:90}); msg('Lửa trại bùng cháy. Thêm gỗ để giữ lửa.', 'good'); }, an:'interact-right'};
       if (inv.campfire <= 0) return {label:'Chưa có lửa trại · chế tạo trong Túi (C)'};
       break;
     case 'axe': if (!state.tools.axe) return {label:'Chế tạo Rìu: 2 gỗ + 3 sợi cỏ'}; break;
@@ -832,10 +1014,20 @@ function getAction(){
   }
   return null;
 }
-function doAction(){ const a = getAction(); if (a && a.fn){ a.fn(); updateHud(true); } else if (a) msg(a.label); }
-function swing(mesh){ const r0 = mesh.rotation.z; tween(.25, k => { mesh.rotation.z = r0 + Math.sin(k * Math.PI * 3) * .12 * (1 - k); }); }
+function doAction(){
+  if (player.anim.lock > .08) return;
+  const a = getAction();
+  if (a && a.fn){ a.fn(); if (a.an) player.anim.once(a.an, a.an === 'attack-melee-right' ? 1.1 : 1.3); updateHud(true); }
+  else if (a) msg(a.label);
+}
+const _rz = new THREE.Matrix4();
+function swing(o){
+  if (!o.key) return;
+  const key = o.key, base = o.base.clone();
+  tween(.3, k => { if (!objs.has(o) || o.key !== key) return; _rz.makeRotationZ(Math.sin(k * Math.PI * 3) * .1 * (1 - k)); POOLS[key].set(o.slot, base.clone().multiply(_rz)); });
+}
 function chop(o, axe){
-  o.hp = (o.hp || 0) + 1; swing(o.mesh); state.hunger -= .6;
+  o.hp = (o.hp || 0) + 1; swing(o); state.hunger -= .6;
   const need = axe ? 3 : 6;
   if (o.hp >= need){
     removeObj(o);
@@ -843,7 +1035,7 @@ function chop(o, axe){
     if (R() < .35) give('fiber', 1);
   }
 }
-function mine(o){ o.hp = (o.hp || 0) + 1; swing(o.mesh); state.hunger -= .8; if (o.hp >= 4){ removeObj(o); give('stone', 2 + (R() < .4 ? 1 : 0) + (leadType() === 'rock' ? 1 : 0)); } }
+function mine(o){ o.hp = (o.hp || 0) + 1; swing(o); state.hunger -= .8; if (o.hp >= 4){ removeObj(o); give('stone', 2 + (R() < .4 ? 1 : 0) + (leadType() === 'rock' ? 1 : 0)); } }
 function pickBush(o){ o.berries = false; o.regrow = 2; refreshObjMesh(o); give('berry', 2 + (R() < .5 ? 1 : 0)); }
 function till(i, j){ const t = T(i, j); t.t = 'tilled'; t.wet = state.weather === 'rain'; paintTile(i, j); state.hunger -= .3; }
 function water(i, j){ const t = T(i, j); if (t.wet) return; t.wet = true; state.water--; paintTile(i, j); }
@@ -853,12 +1045,12 @@ function plant(i, j, type){
   if (seasonIdx() === 3) msg('Mùa đông lạnh giá: cây sẽ không lớn cho tới mùa xuân.', 'bad');
 }
 function cropMesh(i, j){
-  const t = T(i, j), c = t.crop; if (c.mesh) scene.remove(c.mesh);
+  const t = T(i, j), c = t.crop; if (c.key) POOLS[c.key].remove(c.slot);
   const D = CROPS[c.type].days, stage = c.days >= D ? 3 : c.days === 0 ? 0 : c.days < D / 2 ? 1 : 2;
-  c.mesh = new THREE.Mesh(geoCrop(c.type, stage, c.dead), vcMat); c.mesh.castShadow = true;
-  c.mesh.position.set(i + .5, 0, j + .5); c.mesh.rotation.y = hash2(i, j) * 6; scene.add(c.mesh);
+  c.key = `crop:${c.type}:${stage}:${c.dead ? 1 : 0}`;
+  c.slot = poolFor(c.key).add(new THREE.Matrix4().compose(_v.set(i + .5, 0, j + .5), _q.setFromEuler(_e.set(0, hash2(i, j) * 6, 0)), _s.set(1, 1, 1)));
 }
-function removeCrop(t){ scene.remove(t.crop.mesh); t.crop = null; }
+function removeCrop(t){ if (t.crop.key) POOLS[t.crop.key].remove(t.crop.slot); t.crop = null; }
 function harvest(t){ const type = t.crop.type; removeCrop(t); give(type, 1 + (R() < .25 ? 1 : 0)); }
 function eat(item){
   if (state.inv[item] <= 0) return; state.inv[item]--;
@@ -892,12 +1084,12 @@ function newDay(){
   // regrowth in the wild
   let trees = 0, rocks = 0, grass = 0; for (const o of objs){ if (o.kind === 'tree') trees++; else if (o.kind === 'rock') rocks++; else if (o.kind === 'grass') grass++; }
   const sprout = (kind, n, data) => { for (let k = 0, made = 0; k < 60 && made < n; k++){ const i = 2 + Math.floor(R() * (W - 4)), j = 2 + Math.floor(R() * (H - 4)); const t = T(i, j); if (t.obj || t.crop || t.t !== 'grass' || inFarm(i, j)) continue; if (Math.hypot(i - player.pos.x, j - player.pos.z) < 3) continue; addObj(kind, i, j, data()); made++; } };
-  if (trees < 260) sprout('tree', 5, () => ({v: R() < .5 ? 0 : 1}));
-  if (rocks < 70) sprout('rock', 3, () => ({v: R() < .5 ? 0 : 1}));
-  if (grass < 160) sprout('grass', 10, () => ({}));
+  if (trees < 260) sprout('tree', 5, () => ({v: Math.floor(R() * 5)}));
+  if (rocks < 70) sprout('rock', 3, () => ({v: Math.floor(R() * 3)}));
+  if (grass < 160) sprout('grass', 10, () => ({v: grassVariant(R(), .5)}));
   if (season !== prevSeason){
     msg(`Mùa ${SEASONS[season].name} đã đến!`, 'good');
-    for (const o of objs) if (o.kind === 'tree' || o.kind === 'bush' || o.kind === 'grass') refreshObjMesh(o);
+    for (const o of objs) refreshObjMesh(o);
   }
   paintAll();
   for (const w of wilds.slice()) if (SPECIES[w.mon.sp].night) removeWild(w);
@@ -924,7 +1116,7 @@ const tweenP = (dur, fn) => new Promise(r => tween(dur, fn, r));
 /* ================= modals ================= */
 let modalClosable = true;
 function openModal(html, closable = true){ mode = mode === 'battle' ? 'battle' : 'modal'; modalClosable = closable; $('#sheet').innerHTML = html; $('#modal').hidden = false; const x = $('#sheet .x'); if (x) x.onclick = closeModal; }
-function closeModal(){ $('#modal').hidden = true; if (mode === 'modal') mode = 'play'; updateHud(true); canvas.focus(); }
+function closeModal(){ if (chestOpen){ chestOpen = false; if (binObj && binObj.anim) binObj.anim.once('close', 2); } $('#modal').hidden = true; if (mode === 'modal') mode = 'play'; updateHud(true); canvas.focus(); }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal' && modalClosable) closeModal(); });
 const head = t => `<header><h2>${t}</h2><button class="x" aria-label="Đóng">✕</button></header>`;
 
@@ -953,9 +1145,11 @@ function openBag(){
 function openShop(){
   const stock = [...Object.keys(CROPS).map(k => ({id:'seed_' + k, price:CROPS[k].seed, sub:`Lớn trong ${CROPS[k].days} ngày · bán ${CROPS[k].sell} G`})), {id:'orb', price:30, sub:'Dùng để bắt sinh vật'}, {id:'berry', price:10, sub:'Ăn hoặc cho sinh vật ăn'}];
   openModal(head('Cửa hàng của bà Tư') + `<p class="note">Hạt giống chỉ lớn khi được tưới mỗi ngày. Mùa đông cây không lớn.</p><div class="list">${stock.map(s => `<div class="row"><div><div class="name">${ITEMS[s.id]} · ${s.price} G</div><div class="sub">${s.sub} · đang có ${state.inv[s.id] || 0}</div></div><div style="display:flex;gap:6px"><button class="btn" data-buy="${s.id}" data-n="1" ${state.gold >= s.price ? '' : 'disabled'}>Mua 1</button><button class="btn ghost" data-buy="${s.id}" data-n="5" ${state.gold >= s.price * 5 ? '' : 'disabled'}>Mua 5</button></div></div>`).join('')}</div><div class="note">Bạn có <b style="color:var(--wheat)">${state.gold} G</b>.</div>`);
-  $('#sheet').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const s = stock.find(x => x.id === b.dataset.buy), n = +b.dataset.n; if (state.gold < s.price * n) return; state.gold -= s.price * n; state.inv[s.id] = (state.inv[s.id] || 0) + n; openShop(); });
+  $('#sheet').querySelectorAll('[data-buy]').forEach(b => b.onclick = () => { const s = stock.find(x => x.id === b.dataset.buy), n = +b.dataset.n; if (state.gold < s.price * n) return; state.gold -= s.price * n; state.inv[s.id] = (state.inv[s.id] || 0) + n; if (shopObj && shopObj.anim) shopObj.anim.once('emote-yes'); openShop(); });
 }
+let chestOpen = false;
 function openBin(){
+  if (!chestOpen && binObj && binObj.anim){ binObj.anim.once('open'); chestOpen = true; }
   const ks = Object.keys(SELL).filter(k => state.inv[k] > 0);
   openModal(head('Thùng hàng') + `<p class="note">Bỏ hàng vào thùng, người thu mua sẽ trả tiền vào sáng hôm sau.${state.pending ? ` Đang chờ thanh toán: <b style="color:var(--wheat)">${state.pending} G</b>.` : ''}</p><div class="list">${ks.length ? ks.map(k => `<div class="row"><div><div class="name">${ITEMS[k]} ×${state.inv[k]}</div><div class="sub">${SELL[k]} G mỗi cái</div></div><div style="display:flex;gap:6px"><button class="btn ghost" data-sell="${k}" data-n="1">Bỏ 1</button><button class="btn" data-sell="${k}" data-n="all">Bỏ hết</button></div></div>`).join('') : '<div class="note">Bạn chưa có gì để bán. Trồng cây, chặt gỗ hay đập đá rồi quay lại nhé.</div>'}</div>`);
   $('#sheet').querySelectorAll('[data-sell]').forEach(b => b.onclick = () => { const k = b.dataset.sell, n = b.dataset.n === 'all' ? state.inv[k] : 1; state.inv[k] -= n; state.pending += SELL[k] * n; openBin(); });
@@ -971,7 +1165,7 @@ function openParty(){
   openModal(html);
   $('#sheet').querySelectorAll('canvas[data-por]').forEach(cv => portrait(cv, cv.dataset.por));
   $('#sheet').querySelectorAll('[data-lead]').forEach(b => b.onclick = () => { const i = +b.dataset.lead; const [m] = p.splice(i, 1); p.unshift(m); refreshCompanion(); openParty(); });
-  $('#sheet').querySelectorAll('[data-feed]').forEach(b => b.onclick = () => { const m = p[+b.dataset.feed], f = b.dataset.f; if (state.inv[f] <= 0) return; state.inv[f]--; m.hp = Math.min(stats(m).maxHp, m.hp + FOOD_VAL[f].m / 2); m.hp = Math.round(m.hp); refreshCompanion(); openParty(); });
+  $('#sheet').querySelectorAll('[data-feed]').forEach(b => b.onclick = () => { const m = p[+b.dataset.feed], f = b.dataset.f; if (state.inv[f] <= 0) return; state.inv[f]--; m.hp = Math.round(Math.min(stats(m).maxHp, m.hp + FOOD_VAL[f].m)); refreshCompanion(); if (companion.mon === m && companion.mesh) companion.mesh.userData.anim.once('eat'); openParty(); });
   $('#sheet').querySelectorAll('[data-rel]').forEach(b => b.onclick = () => {
     if (b.dataset.sure){ const [m] = p.splice(+b.dataset.rel, 1); msg(`${SPECIES[m.sp].name} đã trở về tự nhiên.`); refreshCompanion(); openParty(); }
     else { b.dataset.sure = '1'; b.textContent = 'Chắc chắn thả?'; b.classList.add('danger'); }
@@ -991,14 +1185,14 @@ function openMenu(){
     <div><b style="color:var(--ink)">Sinh vật.</b> Chạm vào sinh vật hoang dã để chiến đấu. Làm nó yếu rồi ném Cầu bắt. Mỗi hệ có kỹ năng riêng trên nông trại.</div>
     <div>Cỏ thắng Nước và Đá · Nước thắng Lửa và Đá · Lửa thắng Cỏ · Đá thắng Lửa.</div>
   </div></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="mSave">Lưu game</button><button class="btn ghost" id="mNew">Chơi lại từ đầu</button><button class="btn ghost" id="mClose">Tiếp tục chơi</button></div><div class="note" id="mNote"></div>`);
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="mSave">Lưu game</button><button class="btn ghost" id="mNew">Chơi lại từ đầu</button><button class="btn ghost" id="mClose">Tiếp tục chơi</button></div><div class="note" id="mNote"></div><div class="note">Model 3D: Kenney (kenney.nl), giấy phép CC0.</div>`);
   $('#mSave').onclick = () => { $('#mNote').textContent = save() ? 'Đã lưu vào trình duyệt này.' : 'Trình duyệt chặn lưu trữ, không lưu được.'; };
   $('#mClose').onclick = closeModal;
   $('#mNew').onclick = e => { const b = e.currentTarget; if (b.dataset.sure){ try { localStorage.removeItem(SAVE_KEY); } catch (err) {} closeModal(); newGame(); } else { b.dataset.sure = '1'; b.textContent = 'Xóa tiến trình và chơi lại?'; b.classList.add('danger'); } };
 }
 function openStarter(){
   mode = 'start';
-  const ids = ['lamam','luacon','giotsuong'];
+  const ids = ['thomam','caolua','canhcut'];
   $('#sheet').innerHTML = `<div><div class="hero">Nông Trại<br>Hoang Dã</div><p class="note" style="margin-top:8px">Bạn thừa kế một mảnh đất bỏ hoang giữa rừng. Ban ngày trồng trọt, ban đêm sống sót, và kết bạn với những sinh vật kỳ lạ quanh vùng. Hãy chọn người bạn đầu tiên.</p></div>
     <div class="starters">${ids.map(id => { const s = SPECIES[id]; return `<button class="starter" data-sp="${id}"><canvas data-por="${id}"></canvas><div style="display:flex;gap:8px;align-items:center"><h3>${s.name}</h3>${typeChip(s.type)}</div><p>${ABIL[s.type]}</p></button>`; }).join('')}</div>`;
   $('#modal').hidden = false; modalClosable = false;
@@ -1028,6 +1222,24 @@ function battleUi(){
   $('#bMyHpNum').textContent = `${me.hp} / ${ms.maxHp}`; $('#bMyXp').style.width = (me.xp / needXp(me.lvl) * 100) + '%';
 }
 const battleCam = {pos: new THREE.Vector3(), look: new THREE.Vector3()};
+// objects standing between the battle camera and the fighters
+function blockersBetween(cam, targets){
+  const out = new Set(), a = new THREE.Vector2(), b = new THREE.Vector2(), p = new THREE.Vector2();
+  for (const t of targets){
+    a.set(cam.x, cam.z); b.set(t.x, t.z); const len = a.distanceTo(b);
+    for (let k = 0; k <= len * 3; k++){
+      p.copy(a).lerp(b, k / (len * 3));
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++){
+        const tt = T(Math.floor(p.x) + di, Math.floor(p.y) + dj), o = tt && tt.obj;
+        if (o && o.kind !== 'grass' && Math.hypot(o.i + .5 - p.x, o.j + .5 - p.y) < 1.1 && Math.hypot(o.i + .5 - t.x, o.j + .5 - t.z) > .6) out.add(o);
+      }
+    }
+  }
+  return [...out];
+}
+let hiddenObjs = [];
+function hideBlockers(list){ for (const o of list){ if (hiddenObjs.includes(o)) continue; if (o.key) dropVisual(o); else if (o.mesh) o.mesh.visible = false; hiddenObjs.push(o); } }
+function restoreBlockers(){ for (const o of hiddenObjs){ if (!objs.has(o)) continue; if (INSTANCED[o.kind]){ if (!o.key) placeInst(o); } else if (o.mesh) o.mesh.visible = true; } hiddenObjs = []; }
 function placeBattle(){
   const w = battle.w; const dir = w.pos.clone().sub(player.pos); dir.y = 0;
   if (dir.lengthSq() < .01) dir.set(Math.sin(player.yaw), 0, Math.cos(player.yaw)); dir.normalize();
@@ -1035,10 +1247,14 @@ function placeBattle(){
   const myPos = w.pos.clone().addScaledVector(dir, -2.4);
   companion.pos.copy(myPos); companion.mesh.position.copy(myPos);
   companion.mesh.rotation.y = Math.atan2(dir.x, dir.z); w.mesh.rotation.y = Math.atan2(-dir.x, -dir.z);
-  const mid = w.pos.clone().add(myPos).multiplyScalar(.5), side = new THREE.Vector3(dir.z, 0, -dir.x);
-  battleCam.pos.copy(mid).addScaledVector(side, 4.6).addScaledVector(dir, -1.6).add(new THREE.Vector3(0, 2.4, 0));
+  const mid = w.pos.clone().add(myPos).multiplyScalar(.5);
+  const camAt = sd => mid.clone().addScaledVector(new THREE.Vector3(dir.z, 0, -dir.x), 5.6 * sd).addScaledVector(dir, -1.2);
+  if (!battle.sd) battle.sd = blockersBetween(camAt(-1), [mid, myPos, w.pos]).length < blockersBetween(camAt(1), [mid, myPos, w.pos]).length ? -1 : 1;
+  const side = new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(battle.sd);
+  battleCam.pos.copy(camAt(battle.sd)).add(new THREE.Vector3(0, 2.6, 0));
+  hideBlockers(blockersBetween(camAt(battle.sd), [mid, myPos, w.pos]));
   battleCam.look.copy(mid).add(new THREE.Vector3(0, .5, 0));
-  player.pos.copy(myPos).addScaledVector(dir, -1.4).addScaledVector(side, -.9);
+  player.pos.copy(myPos).addScaledVector(dir, -2.6).addScaledVector(side, -1.2);
   if (!canStand(player.pos.x, player.pos.z)) player.pos.copy(myPos);
   player.yaw = Math.atan2(dir.x, dir.z);
 }
@@ -1046,7 +1262,7 @@ async function startBattle(w){
   const lead = followMon(); if (!lead) return;
   mode = 'battle'; battle = {w, mine: lead, over:false};
   if (companion.mon !== lead) setCompanion(lead);
-  placeBattle(); battleUi(); bMenu.innerHTML = ''; $('#battle').hidden = false; $('#prompt').hidden = true;
+  placeBattle(); battleUi(); bMenu.innerHTML = ''; $('#battle').hidden = false; document.documentElement.classList.add('in-battle'); $('#prompt').hidden = true;
   await say(`Một ${SPECIES[w.mon.sp].name} hoang dã (Lv ${w.mon.lvl}) xuất hiện!`, 1200);
   await say(`Lên nào, ${SPECIES[lead.sp].name}!`, 800);
   battleMenu();
@@ -1084,12 +1300,12 @@ async function useMove(a, d, id, mine){
   const dmg = Math.max(1, Math.floor((mv.power * as.atk / ds.def * .42 + 2) * eff * stab * crit * (.85 + R() * .15)));
   bText.textContent = `${mine ? '' : 'Đối thủ '}${SPECIES[a.sp].name} dùng ${mv.name}!`;
   const am = mine ? companion.mesh : battle.w.mesh, dm = mine ? battle.w.mesh : companion.mesh;
-  const start = am.position.clone(), dir = battle.dir.clone().multiplyScalar(mine ? 1 : -1);
+  const start = am.position.clone(), dir = battle.dir.clone().multiplyScalar(mine ? 1 : -1); am.userData.anim.once('run', 1.2);
   await tweenP(.18, k => am.position.copy(start).addScaledVector(dir, Math.sin(k * Math.PI / 2) * 1.1));
   d.hp = Math.max(0, d.hp - dmg);
-  dm.material.emissive.setHex(0xff3322); flashTypeAt(dm.position, mv.type);
+  flashMon(dm, true); flashTypeAt(dm.position, mv.type); if (dm.userData.anim) dm.userData.anim.once('gesture-negative', 1.4);
   await tweenP(.18, k => am.position.copy(start).addScaledVector(dir, Math.cos(k * Math.PI / 2) * 1.1));
-  dm.material.emissive.setHex(dm.userData.baseEmissive);
+  flashMon(dm, false);
   if (mv.drain){ a.hp = Math.min(as.maxHp, a.hp + Math.floor(dmg * mv.drain)); }
   battleUi(); await wait(450);
   if (crit > 1) await say('Đòn chí mạng!', 700);
@@ -1160,14 +1376,16 @@ async function throwOrb(){
     await wait(250);
   }
   scene.remove(orb);
-  await say(`Bắt được ${SPECIES[foe.sp].name}!`, 1100);
+  player.anim.once('emote-yes'); await say(`Bắt được ${SPECIES[foe.sp].name}!`, 1100);
+  if (w.mesh.userData.gem){ w.mesh.remove(w.mesh.userData.gem); w.mesh.userData.gem = null; }
   if (state.party.length < 6){ state.party.push(foe); await say(`${SPECIES[foe.sp].name} đã gia nhập đội của bạn.`, 900); }
   else await say('Đội đã đủ 6 thành viên, nó được thả về rừng.', 1000);
   endBattle('capture'); return true;
 }
 async function foeFainted(){
   const foe = battle.w.mon, me = battle.mine;
-  await tweenP(.4, k => { battle.w.mesh.scale.setScalar(battle.w.mesh.scale.x * (1 - k * .2)); battle.w.mesh.position.y = -k * .3; });
+  const fm = battle.w.mesh; await tweenP(.45, k => { fm.rotation.z = k * Math.PI / 2; fm.position.y = -k * .05; });
+  companion.mesh.userData.anim.play('dance');
   await say(`${SPECIES[foe.sp].name} hoang dã đã gục!`, 900);
   const xp = foe.lvl * 9 + 4; me.xp += xp; battleUi(); await say(`${SPECIES[me.sp].name} nhận ${xp} kinh nghiệm.`, 850);
   while (me.xp >= needXp(me.lvl)){
@@ -1177,11 +1395,13 @@ async function foeFainted(){
     if (me.lvl === 8) await say(`${SPECIES[me.sp].name} học được chiêu ${MOVES[LEARN[SPECIES[me.sp].type]].name}!`, 1100);
   }
   const drop = pick(['berry','fiber','stone','berry']); give(drop, 1, true); await say(`Bạn nhặt được 1 ${ITEMS[drop]}.`, 700);
+  companion.mesh.userData.anim.play('idle');
   endBattle('win');
 }
 async function myFainted(){
   const me = battle.mine;
-  await say(`${SPECIES[me.sp].name} đã kiệt sức!`, 900);
+  const km = companion.mesh; await tweenP(.4, k => { km.rotation.z = -k * Math.PI / 2; });
+  await say(`${SPECIES[me.sp].name} đã kiệt sức!`, 900); km.rotation.z = 0;
   if (healthy().length){ battle.busy = false; switchMenu(true); return; }
   await say('Cả đội đã kiệt sức... Bạn bỏ chạy trong hoảng loạn!', 1300);
   state.hp = Math.max(1, state.hp - 15); state.sanity = Math.max(0, state.sanity - 12);
@@ -1190,13 +1410,16 @@ async function myFainted(){
 function endBattle(result){
   const w = battle.w; battle.over = true;
   if (result === 'win' || result === 'capture') removeWild(w);
-  else { w.cooldown = 6; const away = battle.dir.clone().multiplyScalar(4); w.target.copy(w.pos).add(away); w.timer = 4; w.mesh.scale.setScalar(clamp(.55 + w.mon.lvl * .015, .55, .95)); }
-  battle = null; $('#battle').hidden = true; mode = 'play'; refreshCompanion(); updateHud(true); canvas.focus();
+  else { w.cooldown = 6; const away = battle.dir.clone().multiplyScalar(4); w.target.copy(w.pos).add(away); w.timer = 4; w.mesh.scale.setScalar(lvlScale(w.mon)); w.mesh.rotation.z = 0; }
+  battle = null; restoreBlockers(); $('#battle').hidden = true; document.documentElement.classList.remove('in-battle'); mode = 'play'; refreshCompanion(); updateHud(true); canvas.focus();
 }
 
 /* ================= death ================= */
 function die(){
-  mode = 'dead';
+  mode = 'dead'; player.anim.once('die');
+  setTimeout(() => dieModal(), 900);
+}
+function dieModal(){
   openModal(`<header><h2>Bạn đã ngất xỉu</h2></header><p class="note">${state.hunger <= 0 ? 'Cơn đói đã quật ngã bạn.' : isNight() ? 'Bóng tối đã nuốt chửng bạn.' : 'Bạn kiệt sức giữa đồng.'} Dân làng tìm thấy và đưa bạn về nhà, nhưng làm rơi mất một phần tiền.</p><div><button class="btn" id="wake">Tỉnh dậy ở nhà</button></div>`, false);
   mode = 'dead';
   $('#wake').onclick = () => {
@@ -1205,12 +1428,13 @@ function die(){
     if (state.hour >= 6) newDay(); state.hour = 7;
     for (const m of state.party) m.hp = Math.max(m.hp, Math.ceil(stats(m).maxHp / 2));
     player.pos.set(HX + .5, 0, HZ + 2.6); refreshCompanion();
+    player.anim.lock = 0; player.anim.play('idle');
     $('#modal').hidden = true; mode = 'play'; msg(`Bạn mất ${lost} G.`, 'bad'); save(); updateHud(true);
   };
 }
 
 /* ================= save / load ================= */
-const SAVE_KEY = 'nongtrai_hoangda_v1';
+const SAVE_KEY = 'nongtrai_hoangda_v2';
 function serialize(){
   const tl = [], cr = [], ob = [];
   for (let j = 0; j < H; j++) for (let i = 0; i < W; i++){
@@ -1219,11 +1443,11 @@ function serialize(){
     if (t.crop) cr.push([i, j, t.crop.type, t.crop.days, t.crop.dry, t.crop.dead ? 1 : 0]);
   }
   for (const o of objs){ if (STATIC[o.kind]) continue; ob.push([o.kind, o.i, o.j, o.v || 0, o.kind === 'bush' ? (o.berries ? 1 : 0) : o.kind === 'campfire' ? Math.round(o.fuel) : 0, o.regrow || 0]); }
-  return JSON.stringify({v:1, s:state, tl, cr, ob, px:player.pos.x, pz:player.pos.z});
+  return JSON.stringify({v:2, s:state, tl, cr, ob, px:player.pos.x, pz:player.pos.z});
 }
 function save(){ try { localStorage.setItem(SAVE_KEY, serialize()); return true; } catch (e) { return false; } }
 function load(str){
-  const d = JSON.parse(str); if (!d || d.v !== 1) throw new Error('bad save');
+  const d = JSON.parse(str); if (!d || d.v !== 2) throw new Error('bad save');
   state = Object.assign(defaultState(), d.s); state.inv = Object.assign(defaultState().inv, d.s.inv);
   clearWorld(); genTerrain(state.seed); buildStatics();
   for (const [i, j, w] of d.tl){ const t = T(i, j); t.t = 'tilled'; t.wet = !!w; }
@@ -1269,12 +1493,13 @@ function update(dt){
       if (canStand(nx, player.pos.z)) player.pos.x = nx;
       if (canStand(player.pos.x, nz)) player.pos.z = nz;
       const ty = Math.atan2(mv.x, mv.z); let dy = ty - player.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); player.yaw += dy * Math.min(1, dt * 14);
-      player.walk += dt * (run ? 14 : 10);
+      player.walk += dt * (run ? 14 : 10); player.running = run;
       if (run) state.hunger -= dt * .25;
-    } else player.walk = 0;
+    } else { player.walk = 0; player.running = false; }
   }
-  player.mesh.position.set(player.pos.x, Math.abs(Math.sin(player.walk)) * .07, player.pos.z);
-  player.mesh.rotation.y = player.yaw; player.mesh.rotation.z = Math.sin(player.walk) * .05;
+  player.mesh.position.set(player.pos.x, 0, player.pos.z); player.mesh.rotation.y = player.yaw;
+  if (mode !== 'dead') player.anim.loco(player.walk > 0 ? (player.running ? 'sprint' : 'walk') : 'idle', player.running ? 1 : 1.25);
+  player.anim.update(dt);
 
   // companion
   if (companion.mesh && mode !== 'battle'){
@@ -1282,19 +1507,26 @@ function update(dt){
     const d = companion.pos.distanceTo(back);
     if (d > 9) companion.pos.copy(back);
     else if (d > .35){
+      companion.fast = d > 2.5;
       const step = Math.min(d, dt * (d > 2.5 ? 6.5 : 4.2)), dir = back.clone().sub(companion.pos).normalize();
       const nx = companion.pos.x + dir.x * step, nz = companion.pos.z + dir.z * step;
       if (canStand(nx, companion.pos.z, .2)) companion.pos.x = nx; if (canStand(companion.pos.x, nz, .2)) companion.pos.z = nz;
       if (companion.pos.distanceTo(back) > 4) companion.pos.copy(back);
       companion.mesh.rotation.y = Math.atan2(dir.x, dir.z); companion.walk += dt * 12;
     } else companion.walk = 0;
-    const ghost = SPECIES[companion.mon.sp].shape === 'ghost' || SPECIES[companion.mon.sp].shape === 'bug';
-    companion.mesh.position.set(companion.pos.x, ghost ? .25 + Math.sin(clockT * 3) * .08 : Math.abs(Math.sin(companion.walk)) * .1, companion.pos.z);
+    const fly = SPECIES[companion.mon.sp].fly;
+    companion.mesh.position.set(companion.pos.x, fly ? .25 + Math.sin(clockT * 3) * .08 : 0, companion.pos.z);
+    companion.mesh.userData.anim.loco(companion.walk > 0 ? (companion.fast ? 'run' : 'walk') : 'idle');
     if (leadType() === 'water' && playing){
       const t = T(Math.floor(companion.pos.x), Math.floor(companion.pos.z));
       if (t && t.t === 'tilled' && t.crop && !t.wet){ t.wet = true; paintTile(Math.floor(companion.pos.x), Math.floor(companion.pos.z)); }
     }
   }
+
+  // animation mixers
+  if (companion.mesh) companion.mesh.userData.anim.update(dt);
+  for (const w of wilds) w.mesh.userData.anim.update(dt);
+  for (const o of objs) if (o.anim) o.anim.update(dt);
 
   // wild creatures
   const df = dayFactor(state.hour), night = df < .2;
@@ -1307,23 +1539,25 @@ function update(dt){
     const dp = w.pos.distanceTo(player.pos);
     if (dp > 34 || (!night && SPECIES[w.mon.sp].night && dp > 12)){ removeWild(w); continue; }
     if (!playing) continue;
-    const shade = w.mon.sp === 'bongdem';
+    const shade = w.mon.sp === 'meobong';
     let speed = 1.1;
     if (shade && night && dp < 11 && w.cooldown <= 0){ w.target.copy(player.pos); speed = 2.3; }
     else { w.timer -= dt; if (w.timer <= 0){ w.timer = 2 + R() * 3; w.target.set(w.pos.x + (R() - .5) * 8, 0, w.pos.z + (R() - .5) * 8); } }
     const dir = w.target.clone().sub(w.pos); dir.y = 0; const dl = dir.length();
+    w.moving = false;
     if (dl > .2){
       dir.normalize(); const nx = w.pos.x + dir.x * speed * dt, nz = w.pos.z + dir.z * speed * dt;
       let moved = false;
       if (canStand(nx, w.pos.z, .22)){ w.pos.x = nx; moved = true; } if (canStand(w.pos.x, nz, .22)){ w.pos.z = nz; moved = true; }
-      if (!moved) w.timer = 0;
+      if (!moved) w.timer = 0; w.moving = moved;
       w.mesh.rotation.y = Math.atan2(dir.x, dir.z); w.walk += dt * 10;
     }
-    const floaty = SPECIES[w.mon.sp].shape === 'ghost' || SPECIES[w.mon.sp].shape === 'bug';
-    w.mesh.position.set(w.pos.x, floaty ? .25 + Math.sin(clockT * 3 + w.walk * .1) * .1 : Math.abs(Math.sin(w.walk)) * .08, w.pos.z);
+    const fly = SPECIES[w.mon.sp].fly;
+    w.mesh.position.set(w.pos.x, fly ? .25 + Math.sin(clockT * 3 + w.walk * .1) * .1 : 0, w.pos.z);
+    w.mesh.userData.anim.loco(w.moving ? (speed > 1.5 ? 'run' : 'walk') : 'idle');
     if (dp < .85 && w.cooldown <= 0){
       if (followMon()){ startBattle(w); break; }
-      else if (shade && w.hitCd <= 0){ w.hitCd = 2; state.hp -= 10; state.sanity -= 5; flashHurt(); msg('Bóng Đêm cào bạn! Đội của bạn đã kiệt sức, hãy chạy về nhà.', 'bad'); }
+      else if (shade && w.hitCd <= 0){ w.hitCd = 2; state.hp -= 10; state.sanity -= 5; flashHurt(); msg('Mèo Bóng cào bạn! Đội của bạn đã kiệt sức, hãy chạy về nhà.', 'bad'); }
     }
   }
 
@@ -1342,7 +1576,7 @@ function update(dt){
     else l.intensity = 0;
   }
   const cl = lightPool[3]; let compLight = 0;
-  if (companion.mesh && leadType() === 'fire' && companion.mon.hp > 0){ compLight = 3.4 + companion.mon.lvl * .08; cl.color.setHex(companion.mon.sp === 'domdom' ? 0xd8ff8a : 0xffa04a); cl.position.copy(companion.mesh.position).add(new THREE.Vector3(0, 1, 0)); cl.distance = compLight * 2.2; cl.intensity = 1.2 * (1 - df * .9); }
+  if (companion.mesh && leadType() === 'fire' && companion.mon.hp > 0){ compLight = 3.4 + companion.mon.lvl * .08; cl.color.setHex(companion.mon.sp === 'ongdom' ? 0xd8ff8a : 0xffa04a); cl.position.copy(companion.mesh.position).add(new THREE.Vector3(0, 1, 0)); cl.distance = compLight * 2.2; cl.intensity = 1.2 * (1 - df * .9); }
   else cl.intensity = 0;
 
   // survival
@@ -1422,8 +1656,14 @@ function start(data){
   requestAnimationFrame(frame);
 }
 try { window.claude && window.claude.hot && window.claude.hot.snapshot && window.claude.hot.snapshot(() => ({save: state && state.party.length ? serialize() : null})); } catch (e) {}
-window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
-window.__game = {get state(){ return state; }, player, wilds, newDay, startBattle: () => wilds[0] && startBattle(wilds[0])};
+function boot(data){
+  loadModels(p => { $('#loadBar').style.width = Math.round(p * 100) + '%'; }).then(ok => {
+    if (ok < MODEL_FILES.length) console.warn(`Loaded ${ok}/${MODEL_FILES.length} models; using simple shapes for the rest.`);
+    buildPlayer(); $('#loading').hidden = true; start(data);
+  });
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+window.__game = {get state(){ return state; }, get wilds(){ return wilds; }, player, companion, camera, newDay, startBattle: () => wilds[0] && startBattle(wilds[0])};
 })();
 </script>
 <!--ARTIFACT-END-->
