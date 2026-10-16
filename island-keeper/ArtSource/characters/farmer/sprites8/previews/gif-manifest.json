@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-gif-run",
+  "run_dir": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8",
+  "exports": [
+    {
+      "state": "down_idle",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/down_idle.gif",
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/down_idle.gif",
+        "frames": 4,
+        "delay_ticks": [
+          25,
+          25,
+          25,
+          25
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "down_walk",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/down_walk.gif",
+      "frames": 4,
+      "fps": 10.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/down_walk.gif",
+        "frames": 4,
+        "delay_ticks": [
+          10,
+          10,
+          10,
+          10
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "downside_idle",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/downside_idle.gif",
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/downside_idle.gif",
+        "frames": 4,
+        "delay_ticks": [
+          25,
+          25,
+          25,
+          25
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "downside_walk",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/downside_walk.gif",
+      "frames": 6,
+      "fps": 10.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/downside_walk.gif",
+        "frames": 6,
+        "delay_ticks": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "side_idle",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/side_idle.gif",
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/side_idle.gif",
+        "frames": 4,
+        "delay_ticks": [
+          25,
+          25,
+          25,
+          25
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "side_walk",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/side_walk.gif",
+      "frames": 6,
+      "fps": 10.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/side_walk.gif",
+        "frames": 6,
+        "delay_ticks": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "upside_idle",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/upside_idle.gif",
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/upside_idle.gif",
+        "frames": 4,
+        "delay_ticks": [
+          25,
+          25,
+          25,
+          25
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "upside_walk",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/upside_walk.gif",
+      "frames": 6,
+      "fps": 10.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/upside_walk.gif",
+        "frames": 6,
+        "delay_ticks": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "up_idle",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/up_idle.gif",
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/up_idle.gif",
+        "frames": 4,
+        "delay_ticks": [
+          25,
+          25,
+          25,
+          25
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "state": "up_walk",
+      "output": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/up_walk.gif",
+      "frames": 6,
+      "fps": 10.0,
+      "loop": true,
+      "gif_report": {
+        "path": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8/previews/up_walk.gif",
+        "frames": 6,
+        "delay_ticks": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "loop": 0,
+        "transparent": true,
+        "disposal": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    }
+  ]
+}

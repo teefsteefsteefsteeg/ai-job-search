@@ -46,3 +46,16 @@ và làm đảo đông vui trở lại qua bốn mùa.
 
 Pipeline: OpenRouter tạo ảnh trên nền magenta, sprite-gen tách nền và ép lưới pixel
 (`fit.pixel_unfake`), ghép atlas kèm `manifest.json` để Unity đọc.
+
+## Sinh vật đồng hành (linh thú)
+Thể loại sưu tầm sinh vật, nhưng theo cách riêng của game này: không ném bóng để bắt.
+Linh thú sống hoang trên đảo; bạn làm quen bằng cách trò chuyện và cho ăn nông sản
+mỗi ngày (thanh tim). Đủ thân thì chúng về nông trại ở và đi theo bạn.
+Mỗi con có một việc giúp nông trại: Mạ tưới cây, Muối tìm đồ ở bãi biển, Đóm soi sáng
+ban đêm và dụ côn trùng, Dừa xới đất. Có thể thêm hội thi linh thú ở lễ hội thay cho đánh nhau.
+
+Lưu ý pháp lý (không phải tư vấn luật): tránh tên, hình và giao diện của Pokémon. Nintendo
+từng kiện vụ Palworld dựa trên bằng sáng chế cơ chế bắt sinh vật bằng vật thể ném, nên
+cơ chế làm quen ở đây cố ý khác hẳn.
+
+Đã có: `ArtSource/creatures/` (Mạ, Muối, Đóm, Dừa), bản chơi thử `Prototype/web-farm/`.

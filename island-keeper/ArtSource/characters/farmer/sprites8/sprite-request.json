@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-request",
+  "engine": "component-row",
+  "character": {
+    "id": "farmer",
+    "description": "",
+    "base_image": "base-source.png"
+  },
+  "cell": {
+    "shape": "rect",
+    "width": 64,
+    "height": 80,
+    "safe_margin_x": 6,
+    "safe_margin_y": 7
+  },
+  "chroma_key": {
+    "name": "magenta",
+    "hex": "#FF00FF",
+    "rgb": [
+      255,
+      0,
+      255
+    ],
+    "selection": "manual"
+  },
+  "states": {
+    "down_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "facing straight toward the viewer (front view); idle breathing, tiny bob, one blink where the face is visible"
+    },
+    "down_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "facing straight toward the viewer (front view); walk cycle moving in that direction, legs clearly alternate, arms counter-swing"
+    },
+    "downside_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "45-degree three-quarter FRONT view, body turned toward camera-RIGHT and toward the viewer; idle breathing, tiny bob, one blink where the face is visible"
+    },
+    "downside_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "45-degree three-quarter FRONT view, body turned toward camera-RIGHT and toward the viewer; walk cycle moving in that direction, legs clearly alternate, arms counter-swing"
+    },
+    "side_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "strict side profile facing RIGHT; idle breathing, tiny bob, one blink where the face is visible"
+    },
+    "side_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "strict side profile facing RIGHT; walk cycle moving in that direction, legs clearly alternate, arms counter-swing"
+    },
+    "upside_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "45-degree three-quarter BACK view, body turned away from the viewer toward camera-RIGHT; idle breathing, tiny bob, one blink where the face is visible"
+    },
+    "upside_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "45-degree three-quarter BACK view, body turned away from the viewer toward camera-RIGHT; walk cycle moving in that direction, legs clearly alternate, arms counter-swing"
+    },
+    "up_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "back view, facing straight away from the viewer; idle breathing, tiny bob, one blink where the face is visible"
+    },
+    "up_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "back view, facing straight away from the viewer; walk cycle moving in that direction, legs clearly alternate, arms counter-swing"
+    }
+  },
+  "style": "cozy 16-bit SNES/GBA farming-sim pixel art, chunky square pixels, 1px dark brown outline, bright limited palette, cel shading, chibi",
+  "directions": {
+    "set": [
+      "down",
+      "downside",
+      "side",
+      "upside",
+      "up"
+    ],
+    "mirror": {
+      "left": "side",
+      "downleft": "downside",
+      "upleft": "upside"
+    },
+    "anchor_suffix": "idle"
+  },
+  "layout": "taxonomy/v1",
+  "fit": {
+    "align_y": "bottom",
+    "pixel_unfake": true
+  },
+  "chroma": {
+    "mode": "rgb",
+    "unmix_reach": 4,
+    "spill_max_fraction": 0.005
+  }
+}

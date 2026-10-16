@@ -1,0 +1,11 @@
+A row of FOUR different small companion creatures for a cozy island farming RPG, each drawn as a full-body overworld sprite in a 3/4 top-down front view, standing idle, evenly spaced with wide empty gaps, all at the same pixel scale (each about 40 pixels tall), smaller than a chibi human.
+
+Art style: cozy 16-bit SNES/GBA pixel art, chunky square pixels, 1-pixel dark brown outline, bright limited palette, simple cel shading, NO anti-aliasing, NO gradients. Cute, round, readable silhouettes. Completely ORIGINAL designs inspired by a Vietnamese fishing-village island; they must NOT resemble any existing monster-collecting game creature.
+
+Left to right:
+1. "Mạ" - a round little frog-like spirit made of a young rice seedling: pale green body, a tuft of three rice leaves on its head, tiny water-drop cheeks.
+2. "Muối" - a hermit-crab spirit living in a white salt-crystal shell, sandy orange claws, sleepy eyes.
+3. "Đóm" - a plump firefly-moth spirit whose round tail glows like a paper lantern (warm yellow-orange), small cream wings.
+4. "Dừa" - a stubby piglet-like spirit wearing half a brown coconut shell as a helmet, pink snout, leafy tail.
+
+Background: perfectly flat solid pure magenta (#FF00FF) everywhere, no ground, no shadows, no text, no labels, no numbers. No magenta or pink-magenta on the creatures (the piglet snout is soft salmon pink, clearly not magenta).

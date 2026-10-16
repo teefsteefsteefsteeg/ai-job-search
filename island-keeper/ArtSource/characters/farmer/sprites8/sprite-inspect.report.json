@@ -1,0 +1,414 @@
+{
+  "ok": true,
+  "engine": "component-row",
+  "kind": "sprite-gen-inspect-report",
+  "run_dir": "/home/user/ai-job-search/island-keeper/ArtSource/characters/farmer/sprites8",
+  "states": [
+    "down_idle",
+    "down_walk",
+    "downside_idle",
+    "downside_walk",
+    "side_idle",
+    "side_walk",
+    "upside_idle",
+    "upside_walk",
+    "up_idle",
+    "up_walk"
+  ],
+  "thresholds": {
+    "histogram_min": 0.0,
+    "dhash_min": 0.55,
+    "motion_min": 0.01
+  },
+  "rows": [
+    {
+      "state": "down_idle",
+      "source": "frames",
+      "expected_frames": 4,
+      "found_frames": 4,
+      "natural_pose_count": 4,
+      "frame_files": [
+        "frames/down/idle/frame-0.png",
+        "frames/down/idle/frame-1.png",
+        "frames/down/idle/frame-2.png",
+        "frames/down/idle/frame-3.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9631842603159714,
+          "mean": 0.9738246494013946
+        },
+        "dhash_similarity": {
+          "min": 0.953125,
+          "mean": 0.9765625
+        },
+        "motion_presence": 0.02611331316380719,
+        "centroid_sigma": {
+          "x": 0.1946017355649181,
+          "y": 0.3660026606104333
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "down_idle: frame 1 pitch detection inconclusive — consensus fallback 5.10x5.02",
+        "down_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:64x120, 1:64x121, 2:64x120, 3:66x118"
+      ]
+    },
+    {
+      "state": "down_walk",
+      "source": "frames",
+      "expected_frames": 6,
+      "found_frames": 6,
+      "natural_pose_count": 6,
+      "frame_files": [
+        "frames/down/walk/frame-0.png",
+        "frames/down/walk/frame-1.png",
+        "frames/down/walk/frame-2.png",
+        "frames/down/walk/frame-3.png",
+        "frames/down/walk/frame-4.png",
+        "frames/down/walk/frame-5.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9379541477220394,
+          "mean": 0.957295013690928
+        },
+        "dhash_similarity": {
+          "min": 0.78125,
+          "mean": 0.8822916666666667
+        },
+        "motion_presence": 0.08859839345894607,
+        "centroid_sigma": {
+          "x": 0.4581801879254098,
+          "y": 2.711149850225563
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "down_walk: frame 1 pitch detection inconclusive — consensus fallback 4.44x4.50",
+        "down_walk: frame 4 pitch detection inconclusive — consensus fallback 4.44x4.50",
+        "down_walk: frame 5 pitch detection inconclusive — consensus fallback 4.44x4.50",
+        "down_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:59x132, 1:53x116, 2:57x130, 3:58x132, 4:54x116, 5:60x130"
+      ]
+    },
+    {
+      "state": "downside_idle",
+      "source": "frames",
+      "expected_frames": 4,
+      "found_frames": 4,
+      "natural_pose_count": 4,
+      "frame_files": [
+        "frames/downside/idle/frame-0.png",
+        "frames/downside/idle/frame-1.png",
+        "frames/downside/idle/frame-2.png",
+        "frames/downside/idle/frame-3.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9778128497506513,
+          "mean": 0.9808268997043407
+        },
+        "dhash_similarity": {
+          "min": 1.0,
+          "mean": 1.0
+        },
+        "motion_presence": 0.006228537964665033,
+        "centroid_sigma": {
+          "x": 0.02604868044345939,
+          "y": 0.026740797466497233
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "downside_idle: pitch disagreement — detect 1.00x1.00 (uniformity 177.1) vs runlen 4.14x4.09 (33.1); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+        "downside_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:332x600, 1:331x600, 2:332x600, 3:331x600",
+        "downside_idle: motion presence is too low (0.0062 < 0.0100)"
+      ]
+    },
+    {
+      "state": "downside_walk",
+      "source": "frames",
+      "expected_frames": 6,
+      "found_frames": 6,
+      "natural_pose_count": 6,
+      "frame_files": [
+        "frames/downside/walk/frame-0.png",
+        "frames/downside/walk/frame-1.png",
+        "frames/downside/walk/frame-2.png",
+        "frames/downside/walk/frame-3.png",
+        "frames/downside/walk/frame-4.png",
+        "frames/downside/walk/frame-5.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9358652204357748,
+          "mean": 0.9573570781876338
+        },
+        "dhash_similarity": {
+          "min": 0.84375,
+          "mean": 0.8989583333333333
+        },
+        "motion_presence": 0.05098656747855392,
+        "centroid_sigma": {
+          "x": 0.3400804134741303,
+          "y": 0.9419604492084676
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "downside_walk: pitch disagreement — detect 1.00x1.00 (uniformity 169.2) vs runlen 4.04x3.90 (34.1); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+        "downside_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:244x565, 1:255x559, 2:265x579, 3:251x568, 4:254x559, 5:251x577"
+      ]
+    },
+    {
+      "state": "side_idle",
+      "source": "frames",
+      "expected_frames": 4,
+      "found_frames": 4,
+      "natural_pose_count": 4,
+      "frame_files": [
+        "frames/side/idle/frame-0.png",
+        "frames/side/idle/frame-1.png",
+        "frames/side/idle/frame-2.png",
+        "frames/side/idle/frame-3.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.966042966042966,
+          "mean": 0.9729783847483456
+        },
+        "dhash_similarity": {
+          "min": 0.953125,
+          "mean": 0.9765625
+        },
+        "motion_presence": 0.03623733021854575,
+        "centroid_sigma": {
+          "x": 0.1886634140117119,
+          "y": 0.5791398744773466
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "side_idle: pitch disagreement — detect 1.00x1.00 (uniformity 181.6) vs runlen 4.16x4.23 (33.5); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+        "side_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:311x602, 1:311x618, 2:312x596, 3:312x602"
+      ]
+    },
+    {
+      "state": "side_walk",
+      "source": "frames",
+      "expected_frames": 6,
+      "found_frames": 6,
+      "natural_pose_count": 6,
+      "frame_files": [
+        "frames/side/walk/frame-0.png",
+        "frames/side/walk/frame-1.png",
+        "frames/side/walk/frame-2.png",
+        "frames/side/walk/frame-3.png",
+        "frames/side/walk/frame-4.png",
+        "frames/side/walk/frame-5.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9302193086245044,
+          "mean": 0.9627072028932951
+        },
+        "dhash_similarity": {
+          "min": 0.859375,
+          "mean": 0.9322916666666666
+        },
+        "motion_presence": 0.04263734106924019,
+        "centroid_sigma": {
+          "x": 0.231219610111013,
+          "y": 0.5208598181250343
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "side_walk: frame 0 pitch detection inconclusive — consensus fallback 4.63x4.65",
+        "side_walk: frame 1 pitch detection inconclusive — consensus fallback 4.63x4.65",
+        "side_walk: frame 2 pitch detection inconclusive — consensus fallback 4.63x4.65",
+        "side_walk: frame 5 pitch detection inconclusive — consensus fallback 4.63x4.65",
+        "side_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:62x125, 1:55x125, 2:57x125, 3:57x125, 4:57x123, 5:56x125"
+      ]
+    },
+    {
+      "state": "upside_idle",
+      "source": "frames",
+      "expected_frames": 4,
+      "found_frames": 4,
+      "natural_pose_count": 4,
+      "frame_files": [
+        "frames/upside/idle/frame-0.png",
+        "frames/upside/idle/frame-1.png",
+        "frames/upside/idle/frame-2.png",
+        "frames/upside/idle/frame-3.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9720048411324345,
+          "mean": 0.9807473626558723
+        },
+        "dhash_similarity": {
+          "min": 0.953125,
+          "mean": 0.9739583333333334
+        },
+        "motion_presence": 0.01699896918402778,
+        "centroid_sigma": {
+          "x": 0.21115181249354742,
+          "y": 0.017393709650202305
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "upside_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:62x121, 1:62x121, 2:63x121, 3:62x121"
+      ]
+    },
+    {
+      "state": "upside_walk",
+      "source": "frames",
+      "expected_frames": 6,
+      "found_frames": 6,
+      "natural_pose_count": 6,
+      "frame_files": [
+        "frames/upside/walk/frame-0.png",
+        "frames/upside/walk/frame-1.png",
+        "frames/upside/walk/frame-2.png",
+        "frames/upside/walk/frame-3.png",
+        "frames/upside/walk/frame-4.png",
+        "frames/upside/walk/frame-5.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9334837501800202,
+          "mean": 0.9558785353171724
+        },
+        "dhash_similarity": {
+          "min": 0.84375,
+          "mean": 0.9114583333333334
+        },
+        "motion_presence": 0.09649145986519608,
+        "centroid_sigma": {
+          "x": 0.39978255317730826,
+          "y": 2.441658226550675
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "upside_walk: pitch disagreement — detect 1.00x1.00 (uniformity 170.7) vs runlen 3.83x3.88 (30.7); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+        "upside_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:257x532, 1:246x486, 2:270x547, 3:243x527, 4:241x491, 5:261x542"
+      ]
+    },
+    {
+      "state": "up_idle",
+      "source": "frames",
+      "expected_frames": 4,
+      "found_frames": 4,
+      "natural_pose_count": 4,
+      "frame_files": [
+        "frames/up/idle/frame-0.png",
+        "frames/up/idle/frame-1.png",
+        "frames/up/idle/frame-2.png",
+        "frames/up/idle/frame-3.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9753050839684472,
+          "mean": 0.9824392875419805
+        },
+        "dhash_similarity": {
+          "min": 0.984375,
+          "mean": 0.9921875
+        },
+        "motion_presence": 0.012464655458537581,
+        "centroid_sigma": {
+          "x": 0.10922969504504525,
+          "y": 0.13511901956005912
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "up_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:65x119, 1:64x119, 2:65x119, 3:65x120"
+      ]
+    },
+    {
+      "state": "up_walk",
+      "source": "frames",
+      "expected_frames": 6,
+      "found_frames": 6,
+      "natural_pose_count": 6,
+      "frame_files": [
+        "frames/up/walk/frame-0.png",
+        "frames/up/walk/frame-1.png",
+        "frames/up/walk/frame-2.png",
+        "frames/up/walk/frame-3.png",
+        "frames/up/walk/frame-4.png",
+        "frames/up/walk/frame-5.png"
+      ],
+      "metrics": {
+        "histogram_intersection": {
+          "min": 0.9474120718017408,
+          "mean": 0.960571919273852
+        },
+        "dhash_similarity": {
+          "min": 0.890625,
+          "mean": 0.9354166666666667
+        },
+        "motion_presence": 0.0834527707567402,
+        "centroid_sigma": {
+          "x": 0.4670228059333531,
+          "y": 2.067625158454671
+        }
+      },
+      "ok": true,
+      "errors": [],
+      "warnings": [
+        "up_walk: frame 0 pitch detection inconclusive — consensus fallback 4.28x4.50",
+        "up_walk: frame 1 pitch detection inconclusive — consensus fallback 4.28x4.50",
+        "up_walk: frame 2 pitch detection inconclusive — consensus fallback 4.28x4.50",
+        "up_walk: frame 4 pitch detection inconclusive — consensus fallback 4.28x4.50",
+        "up_walk: frame 5 pitch detection inconclusive — consensus fallback 4.28x4.50",
+        "up_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:62x131, 1:59x118, 2:60x123, 3:61x131, 4:58x118, 5:63x131"
+      ]
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "down_idle: frame 1 pitch detection inconclusive — consensus fallback 5.10x5.02",
+    "down_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:64x120, 1:64x121, 2:64x120, 3:66x118",
+    "down_walk: frame 1 pitch detection inconclusive — consensus fallback 4.44x4.50",
+    "down_walk: frame 4 pitch detection inconclusive — consensus fallback 4.44x4.50",
+    "down_walk: frame 5 pitch detection inconclusive — consensus fallback 4.44x4.50",
+    "down_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:59x132, 1:53x116, 2:57x130, 3:58x132, 4:54x116, 5:60x130",
+    "downside_idle: pitch disagreement — detect 1.00x1.00 (uniformity 177.1) vs runlen 4.14x4.09 (33.1); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+    "downside_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:332x600, 1:331x600, 2:332x600, 3:331x600",
+    "downside_idle: motion presence is too low (0.0062 < 0.0100)",
+    "downside_walk: pitch disagreement — detect 1.00x1.00 (uniformity 169.2) vs runlen 4.04x3.90 (34.1); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+    "downside_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:244x565, 1:255x559, 2:265x579, 3:251x568, 4:254x559, 5:251x577",
+    "side_idle: pitch disagreement — detect 1.00x1.00 (uniformity 181.6) vs runlen 4.16x4.23 (33.5); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+    "side_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:311x602, 1:311x618, 2:312x596, 3:312x602",
+    "side_walk: frame 0 pitch detection inconclusive — consensus fallback 4.63x4.65",
+    "side_walk: frame 1 pitch detection inconclusive — consensus fallback 4.63x4.65",
+    "side_walk: frame 2 pitch detection inconclusive — consensus fallback 4.63x4.65",
+    "side_walk: frame 5 pitch detection inconclusive — consensus fallback 4.63x4.65",
+    "side_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:62x125, 1:55x125, 2:57x125, 3:57x125, 4:57x123, 5:56x125",
+    "upside_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:62x121, 1:62x121, 2:63x121, 3:62x121",
+    "upside_walk: pitch disagreement — detect 1.00x1.00 (uniformity 170.7) vs runlen 3.83x3.88 (30.7); detect kept. large gap usually means the raw was drawn finer than the cell contract — reroll with a block-count hint",
+    "upside_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:257x532, 1:246x486, 2:270x547, 3:243x527, 4:241x491, 5:261x542",
+    "up_idle: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:65x119, 1:64x119, 2:65x119, 3:65x120",
+    "up_walk: frame 0 pitch detection inconclusive — consensus fallback 4.28x4.50",
+    "up_walk: frame 1 pitch detection inconclusive — consensus fallback 4.28x4.50",
+    "up_walk: frame 2 pitch detection inconclusive — consensus fallback 4.28x4.50",
+    "up_walk: frame 4 pitch detection inconclusive — consensus fallback 4.28x4.50",
+    "up_walk: frame 5 pitch detection inconclusive — consensus fallback 4.28x4.50",
+    "up_walk: native logical exceeds the physical cap 64x73 — capped frames (reroll candidates): 0:62x131, 1:59x118, 2:60x123, 3:61x131, 4:58x118, 5:63x131"
+  ]
+}

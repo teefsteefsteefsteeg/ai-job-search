@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-curation",
+  "states": {
+    "downside_walk": {
+      "pixels": {
+        "1": {
+          "15,9": null,
+          "15,10": null,
+          "16,10": null,
+          "15,11": null,
+          "16,11": null,
+          "15,12": null,
+          "16,12": null,
+          "15,13": null,
+          "16,13": null,
+          "15,14": null,
+          "16,14": null,
+          "15,15": null
+        },
+        "2": {
+          "46,17": null,
+          "47,17": null,
+          "45,18": null,
+          "46,18": null,
+          "47,18": null,
+          "46,19": null,
+          "47,19": null,
+          "47,20": null
+        },
+        "3": {
+          "48,19": null,
+          "48,20": null,
+          "48,21": null
+        }
+      },
+      "revision": [
+        "fa7c49992459"
+      ]
+    },
+    "side_walk": {
+      "pixels": {
+        "0": {
+          "48,19": null,
+          "49,19": null,
+          "47,20": null,
+          "48,20": null,
+          "49,20": null,
+          "47,21": null,
+          "48,21": null,
+          "49,21": null,
+          "48,22": null,
+          "49,22": null,
+          "49,23": null
+        },
+        "1": {
+          "48,19": null,
+          "47,20": null,
+          "48,20": null,
+          "47,21": null,
+          "48,21": null,
+          "48,22": null
+        },
+        "2": {
+          "48,19": null,
+          "47,20": null,
+          "48,20": null,
+          "47,21": null,
+          "48,21": null,
+          "48,22": null
+        },
+        "3": {
+          "48,19": null,
+          "47,20": null,
+          "48,20": null,
+          "47,21": null,
+          "48,21": null,
+          "48,22": null
+        }
+      },
+      "revision": [
+        "8eb0c5969a55"
+      ]
+    },
+    "upside_walk": {
+      "pixels": {
+        "2": {
+          "50,18": null,
+          "50,19": null,
+          "49,20": null,
+          "50,20": null,
+          "49,21": null,
+          "50,21": null,
+          "49,22": null,
+          "50,22": null,
+          "49,23": null,
+          "50,23": null,
+          "50,24": null,
+          "50,25": null
+        }
+      },
+      "revision": [
+        "911e561f864b"
+      ]
+    },
+    "down_walk": {
+      "selected": [
+        0,
+        2,
+        3,
+        5
+      ],
+      "revision": [
+        "0a900bd3a21f"
+      ]
+    }
+  },
+  "run_revision": "15c71051c5d44079"
+}

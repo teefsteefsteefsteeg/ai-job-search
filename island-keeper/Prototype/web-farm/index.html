@@ -1,0 +1,289 @@
+<title>Hòn Gió Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Nunito:wght@400;700&display=swap">
+<style>
+/* Layout: one sunny pixel stage under a slim title bar; HUD chips sit on the stage, touch buttons bottom-right */
+:root {
+  --soil: #3a2a1c;
+  --cream: #fff4d6;
+  --leaf: #7cb252;
+  --sun: #f4c542;
+  --sea: #3f8fb0;
+  --ink: #2b1d12;
+  --display: "Pixelify Sans", "Courier New", monospace;
+  --body: "Nunito", "Trebuchet MS", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--soil); color: var(--cream); font-family: var(--body); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 10px;
+}
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 1.8rem; margin: 0; color: var(--sun); letter-spacing: .03em; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: #d9c7a3; font-size: .9rem; }
+kbd { font-family: var(--display); color: var(--cream); background: var(--ink); border: 1px solid #6b5137; border-bottom-width: 3px; border-radius: 3px; padding: 0 5px; }
+.stage { position: relative; flex: 1; min-height: 300px; border: 3px solid var(--ink); border-radius: 4px; overflow: hidden; background: var(--leaf); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; image-rendering: pixelated; }
+.hud { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; }
+.chip { font-family: var(--display); font-size: .95rem; background: rgba(43,29,18,.82); border: 2px solid #6b5137; border-radius: 4px; padding: 2px 9px; color: var(--cream); font-variant-numeric: tabular-nums; }
+.toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); font-family: var(--display); font-size: 1.05rem; background: rgba(43,29,18,.9); border: 2px solid var(--sun); border-radius: 4px; padding: 6px 14px; color: var(--cream); pointer-events: none; text-align: center; max-width: 80%; }
+.actions { position: absolute; right: 14px; bottom: 14px; display: flex; gap: 10px; }
+button { font-family: var(--display); font-size: 1rem; color: var(--cream); background: rgba(43,29,18,.88); border: 2px solid #6b5137; border-radius: 6px; width: 76px; height: 64px; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .actions { display: none; } }
+</style>
+
+<header>
+  <h1>Hòn Gió</h1>
+  <div class="legend">
+    <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / mũi tên: đi 8 hướng</span>
+    <span><kbd>E</kbd> làm quen sinh vật</span>
+  </div>
+</header>
+
+<div class="stage" id="stage">
+  <canvas id="c" aria-label="Màn chơi thử: nhân vật đi 8 hướng trên nông trại, làm quen sinh vật"></canvas>
+  <div class="hud"><span class="chip" id="dirChip">down_idle</span><span class="chip" id="friendChip">Bạn đồng hành 0/4</span></div>
+  <div class="toast" id="toast">Đi lại gần một sinh vật rồi bấm E để làm quen</div>
+  <div class="actions"><button id="eBtn" type="button">Làm quen</button></div>
+</div>
+
+<script>
+// ---------- data ----------
+const ROWS = {"down_idle":[[0,0],[64,0],[128,0],[192,0]],"down_walk":[[0,80],[64,80],[128,80],[192,80]],"downside_idle":[[0,160],[64,160],[128,160],[192,160]],"downside_walk":[[0,240],[64,240],[128,240],[192,240],[256,240],[320,240]],"side_idle":[[0,320],[64,320],[128,320],[192,320]],"side_walk":[[0,400],[64,400],[128,400],[192,400],[256,400],[320,400]],"upside_idle":[[0,480],[64,480],[128,480],[192,480]],"upside_walk":[[0,560],[64,560],[128,560],[192,560],[256,560],[320,560]],"up_idle":[[0,640],[64,640],[128,640],[192,640]],"up_walk":[[0,720],[64,720],[128,720],[192,720],[256,720],[320,720]]};
+const FPS = { idle: 4, walk: 10 };
+const CW = 64, CH = 80, FOOT = 72;
+const CRE = [
+  { id: 'ma',   name: 'Mạ',   desc: 'linh thú mạ non',      sx: 0,  w: 20 },
+  { id: 'muoi', name: 'Muối', desc: 'ốc mượn hồn vỏ muối',   sx: 22, w: 24 },
+  { id: 'dom',  name: 'Đóm',  desc: 'đom đóm đèn lồng',      sx: 48, w: 25 },
+  { id: 'dua',  name: 'Dừa',  desc: 'heo con đội gáo dừa',   sx: 75, w: 33 },
+];
+const CRE_H = 26;
+const TILE = 16, MW = 48, MH = 36, WW = MW * TILE, WH = MH * TILE;   // world in art pixels
+const SPEED = 62;                                                   // art px / s
+
+const farmer = new Image(); farmer.src = 'farmer-atlas.png';
+const creImg = new Image(); creImg.src = 'creatures.png';
+
+// ---------- world (pixel art drawn at 1x, scaled up on screen) ----------
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+const R = rng(11);
+const world = document.createElement('canvas'); world.width = WW; world.height = WH;
+const blockers = [];
+const POND = { x: 31 * TILE, y: 5 * TILE, w: 11 * TILE, h: 7 * TILE };
+const PLOT = { x: 6 * TILE, y: 17 * TILE, w: 12 * TILE, h: 7 * TILE };
+const HOUSE = { x: 6 * TILE, y: 3 * TILE, w: 96, h: 80 };
+(function paint() {
+  const g = world.getContext('2d');
+  const px = (x, y, c, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, w, h); };
+  px(0, 0, '#7cb252', WW, WH);
+  for (let ty = 0; ty < MH; ty++) for (let tx = 0; tx < MW; tx++) {
+    if (R() < .35) px(tx * TILE, ty * TILE, '#74aa4b', TILE, TILE);
+    for (let k = 0; k < 3; k++) { const x = tx * TILE + R() * 15, y = ty * TILE + R() * 14; px(x, y, '#5f9440'); px(x + 1, y - 1, '#5f9440'); px(x + 2, y, '#5f9440'); }
+    if (R() < .05) { const x = tx * TILE + 4 + R() * 8, y = ty * TILE + 4 + R() * 8, c = ['#fff4d6', '#f4c542', '#e8797a'][(R() * 3) | 0]; px(x, y, c); px(x - 1, y + 1, c); px(x + 1, y + 1, c); px(x, y + 2, c); px(x, y + 1, '#c9862b'); }
+  }
+  // path from house door down to plot and across
+  for (let y = HOUSE.y + HOUSE.h; y < 30 * TILE; y++) for (let x = 11 * TILE; x < 13 * TILE; x++) px(x, y, (x * 7 + y * 13) % 11 < 2 ? '#b8915e' : '#caa46e');
+  for (let x = 0; x < WW; x++) for (let y = 28 * TILE; y < 30 * TILE; y++) px(x, y, (x * 7 + y * 13) % 11 < 2 ? '#b8915e' : '#caa46e');
+  // tilled plot with sprouts
+  for (let ty = 0; ty < PLOT.h / TILE; ty++) for (let tx = 0; tx < PLOT.w / TILE; tx++) {
+    const x = PLOT.x + tx * TILE, y = PLOT.y + ty * TILE, wet = (tx + ty) % 3 === 0;
+    px(x, y, wet ? '#5a3b22' : '#7a5332', TILE, TILE);
+    for (let r = 2; r < 16; r += 4) px(x + 1, y + r, wet ? '#4a2f1a' : '#65442a', 14, 1);
+    if ((tx * 3 + ty) % 4 !== 1) { px(x + 7, y + 6, '#4f8a35', 2, 5); px(x + 4, y + 5, '#6fb94a', 3, 2); px(x + 9, y + 4, '#6fb94a', 3, 2); }
+  }
+  // fence around plot
+  for (let x = PLOT.x - 8; x <= PLOT.x + PLOT.w + 4; x += 8) { px(x, PLOT.y - 12, '#8a5a2b', 3, 10); px(x, PLOT.y - 12, '#3a2414', 3, 1); }
+  px(PLOT.x - 8, PLOT.y - 9, '#a8743d', PLOT.w + 15, 2);
+  // pond
+  g.fillStyle = '#2f6f91'; g.beginPath(); g.ellipse(POND.x + POND.w / 2, POND.y + POND.h / 2, POND.w / 2, POND.h / 2, 0, 0, 7); g.fill();
+  g.fillStyle = '#3f8fb0'; g.beginPath(); g.ellipse(POND.x + POND.w / 2, POND.y + POND.h / 2 + 2, POND.w / 2 - 5, POND.h / 2 - 6, 0, 0, 7); g.fill();
+  for (let i = 0; i < 26; i++) { const x = POND.x + 20 + R() * (POND.w - 40), y = POND.y + 14 + R() * (POND.h - 28); px(x, y, '#9fd3e3', 4 + R() * 4, 1); }
+  px(POND.x + 40, POND.y + 30, '#4f8a35', 8, 5); px(POND.x + 42, POND.y + 29, '#6fb94a', 4, 2);
+  blockers.push({ x: POND.x + 6, y: POND.y + 8, w: POND.w - 12, h: POND.h - 14 });
+  blockers.push({ x: HOUSE.x + 4, y: HOUSE.y + 30, w: HOUSE.w - 8, h: HOUSE.h - 30 });
+})();
+
+const house = document.createElement('canvas'); house.width = HOUSE.w; house.height = HOUSE.h;
+(function paintHouse() {
+  const g = house.getContext('2d'); const px = (x, y, c, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  px(8, 34, '#2b1d12', 80, 46); px(9, 35, '#e8d3a8', 78, 44);
+  for (let y = 38; y < 78; y += 5) px(9, y, '#d4bb8c', 78, 1);
+  for (let i = 0; i < 34; i++) px(2 + i, 34 - i, '#2b1d12', 92 - i * 2, 1);
+  for (let i = 1; i < 33; i++) px(3 + i, 34 - i, i % 4 < 2 ? '#c4583a' : '#a9452d', 90 - i * 2, 1);
+  px(40, 50, '#2b1d12', 16, 30); px(41, 51, '#8a5a2b', 14, 29); px(52, 64, '#f4c542', 2, 2);
+  px(16, 46, '#2b1d12', 16, 14); px(17, 47, '#9fd3e3', 14, 12); px(24, 47, '#2b1d12', 1, 12); px(17, 53, '#2b1d12', 14, 1);
+  px(64, 46, '#2b1d12', 16, 14); px(65, 47, '#9fd3e3', 14, 12); px(72, 47, '#2b1d12', 1, 12); px(65, 53, '#2b1d12', 14, 1);
+  px(70, 8, '#2b1d12', 10, 18); px(71, 9, '#8a6a52', 8, 16);
+})();
+
+// ---------- entities ----------
+const P = { x: 12 * TILE, y: 15 * TILE, dir: 'down', flip: false, moving: false, t: 0, trail: [] };
+const wild = CRE.map((c, i) => ({
+  ...c, x: [22, 30, 20, 38][i] * TILE, y: [24, 20, 11, 25][i] * TILE, tx: 0, ty: 0, wait: R() * 2,
+  hearts: 0, friend: false, flip: false, moving: false, t: R() * 9, pop: 0,
+}));
+wild.forEach(w => { w.tx = w.x; w.ty = w.y; });
+
+function blocked(x, y) {
+  if (x < 6 || y < 10 || x > WW - 6 || y > WH - 4) return true;
+  return blockers.some(b => x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h);
+}
+
+// ---------- input ----------
+const keys = new Set(); let joy = null;
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k.startsWith('arrow') || k === ' ') e.preventDefault();
+  if (k === 'e') befriend(); else keys.add(k);
+});
+addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => keys.clear());
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); joy = { id: e.pointerId, ox: e.offsetX, oy: e.offsetY, dx: 0, dy: 0 }; });
+cv.addEventListener('pointermove', e => { if (joy && e.pointerId === joy.id) { joy.dx = e.offsetX - joy.ox; joy.dy = e.offsetY - joy.oy; } });
+const endJoy = e => { if (joy && e.pointerId === joy.id) joy = null; };
+cv.addEventListener('pointerup', endJoy); cv.addEventListener('pointercancel', endJoy);
+document.getElementById('eBtn').onclick = befriend;
+
+const toastEl = document.getElementById('toast'); let toastT = 4;
+function toast(msg) { toastEl.textContent = msg; toastEl.hidden = false; toastT = 2.6; }
+function nearestWild() {
+  let best = null, bd = 40;
+  for (const w of wild) { if (w.friend) continue; const d = Math.hypot(w.x - P.x, w.y - P.y); if (d < bd) { bd = d; best = w; } }
+  return best;
+}
+function befriend() {
+  const w = nearestWild();
+  if (!w) { toast('Không có sinh vật nào ở gần'); return; }
+  w.hearts++; w.pop = 1; w.wait = 1.2; w.tx = w.x; w.ty = w.y;
+  if (w.hearts >= 3) {
+    w.friend = true;
+    toast(`${w.name} (${w.desc}) đã đi theo bạn!`);
+    document.getElementById('friendChip').textContent = `Bạn đồng hành ${wild.filter(v => v.friend).length}/4`;
+  } else toast(`${w.name} thích bạn hơn một chút (${w.hearts}/3)`);
+}
+
+function inputVec() {
+  let x = 0, y = 0;
+  if (keys.has('a') || keys.has('arrowleft')) x--;
+  if (keys.has('d') || keys.has('arrowright')) x++;
+  if (keys.has('w') || keys.has('arrowup')) y--;
+  if (keys.has('s') || keys.has('arrowdown')) y++;
+  if (joy) { const l = Math.hypot(joy.dx, joy.dy); if (l > 12) { x = joy.dx / l; y = joy.dy / l; } }
+  const l = Math.hypot(x, y); return l ? [x / l, y / l] : [0, 0];
+}
+// 8 sectors -> 5 drawn directions + horizontal flip
+const SECTORS = { 0: ['side', false], 1: ['downside', false], 2: ['down', false], 3: ['downside', true], 4: ['side', true], '-4': ['side', true], '-1': ['upside', false], '-2': ['up', false], '-3': ['upside', true] };
+
+function update(dt) {
+  const [vx, vy] = inputVec();
+  const moving = !!(vx || vy);
+  if (moving !== P.moving) { P.moving = moving; P.t = 0; }
+  P.t += dt;
+  if (moving) {
+    const s = Math.round(Math.atan2(vy, vx) / (Math.PI / 4));
+    [P.dir, P.flip] = SECTORS[s];
+    const nx = P.x + vx * SPEED * dt, ny = P.y + vy * SPEED * dt;
+    if (!blocked(nx, P.y)) P.x = nx;
+    if (!blocked(P.x, ny)) P.y = ny;
+    const last = P.trail[0];
+    if (!last || Math.hypot(last.x - P.x, last.y - P.y) > 2) { P.trail.unshift({ x: P.x, y: P.y }); P.trail.length = Math.min(P.trail.length, 200); }
+  }
+  let slot = 0;
+  for (const w of wild) {
+    w.t += dt; w.pop = Math.max(0, w.pop - dt * 1.5);
+    let gx, gy;
+    if (w.friend) {
+      slot++;
+      const p = P.trail[Math.min(P.trail.length - 1, slot * 11)] || P;
+      gx = p.x; gy = p.y;
+    } else {
+      w.wait -= dt;
+      if (w.wait <= 0 && Math.hypot(w.tx - w.x, w.ty - w.y) < 2) {
+        w.wait = 1 + R() * 3;
+        for (let k = 0; k < 8; k++) { const ax = w.x + (R() - .5) * 90, ay = w.y + (R() - .5) * 70; if (!blocked(ax, ay)) { w.tx = ax; w.ty = ay; break; } }
+      }
+      gx = w.tx; gy = w.ty;
+    }
+    const dx = gx - w.x, dy = gy - w.y, d = Math.hypot(dx, dy);
+    const sp = w.friend ? Math.min(SPEED * 1.15, d * 4) : 22;
+    w.moving = d > (w.friend ? 3 : 1.5);
+    if (w.moving) { w.x += dx / d * Math.min(d, sp * dt); w.y += dy / d * Math.min(d, sp * dt); if (Math.abs(dx) > 1) w.flip = dx < 0; }
+  }
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) toastEl.hidden = true; }
+}
+
+// ---------- render ----------
+let dpr = 1, vw = 0, vh = 0, S = 3;
+const stage = document.getElementById('stage');
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  const r = stage.getBoundingClientRect(); vw = r.width; vh = r.height;
+  cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr);
+  S = vw < 560 ? 2 : 3;
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+function drawShadow(x, y, w) { ctx.fillStyle = 'rgba(43,29,18,.28)'; ctx.fillRect(Math.round(x - w / 2), Math.round(y - 1), w, 3); ctx.fillRect(Math.round(x - w / 2 + 2), Math.round(y - 2), w - 4, 5); }
+function drawHeart(x, y) {
+  const h = [[1,0],[2,0],[4,0],[5,0],[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[1,3],[2,3],[3,3],[4,3],[5,3],[2,4],[3,4],[4,4],[3,5]];
+  ctx.fillStyle = '#e8486a'; for (const [a, b] of h) ctx.fillRect(x + a, y + b, 1, 1);
+}
+
+function render() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#7cb252'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const z = S * dpr, vwA = cv.width / z, vhA = cv.height / z;
+  let camX = Math.round(Math.max(0, Math.min(WW - vwA, P.x - vwA / 2)));
+  let camY = Math.round(Math.max(0, Math.min(WH - vhA, P.y - 20 - vhA / 2)));
+  if (WW < vwA) camX = Math.round((WW - vwA) / 2);
+  if (WH < vhA) camY = Math.round((WH - vhA) / 2);
+  ctx.setTransform(z, 0, 0, z, -camX * z, -camY * z); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(world, 0, 0);
+
+  const ents = [{ y: HOUSE.y + HOUSE.h, draw: () => ctx.drawImage(house, HOUSE.x, HOUSE.y) }];
+  ents.push({ y: P.y, draw: () => {
+    const key = P.dir + '_' + (P.moving ? 'walk' : 'idle'), rects = ROWS[key];
+    const idx = Math.floor(P.t * FPS[P.moving ? 'walk' : 'idle']) % rects.length;
+    drawShadow(P.x, P.y, 16);
+    if (farmer.complete && farmer.naturalWidth) {
+      const [sx, sy] = rects[idx], x = Math.round(P.x), y = Math.round(P.y);
+      ctx.save(); ctx.translate(x, y); if (P.flip) ctx.scale(-1, 1);
+      ctx.drawImage(farmer, sx, sy, CW, CH, -CW / 2, -FOOT, CW, CH); ctx.restore();
+    }
+    document.getElementById('dirChip').textContent = key + (P.flip ? ' (lật)' : '');
+  } });
+  const near = nearestWild();
+  for (const w of wild) ents.push({ y: w.y, draw: () => {
+    const hop = w.moving ? Math.round(Math.abs(Math.sin(w.t * 11)) * 4) : (Math.sin(w.t * 3) > .6 ? 1 : 0);
+    const x = Math.round(w.x), y = Math.round(w.y);
+    drawShadow(x, y, Math.round(w.w * .7));
+    if (creImg.complete && creImg.naturalWidth) {
+      ctx.save(); ctx.translate(x, y - hop); if (w.flip) ctx.scale(-1, 1);
+      ctx.drawImage(creImg, w.sx, 0, w.w, CRE_H, -Math.round(w.w / 2), -CRE_H, w.w, CRE_H); ctx.restore();
+    }
+    if (w.pop > 0) drawHeart(x - 3, Math.round(y - CRE_H - 10 - (1 - w.pop) * 8));
+    if (w === near) {
+      ctx.font = '8px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
+      const label = `${w.name} ${'♥'.repeat(w.hearts)}${'·'.repeat(3 - w.hearts)}`;
+      const tw = Math.ceil(ctx.measureText(label).width) + 6;
+      ctx.fillStyle = 'rgba(43,29,18,.85)'; ctx.fillRect(x - tw / 2, y - CRE_H - 20, tw, 11);
+      ctx.fillStyle = '#fff4d6'; ctx.fillText(label, x, y - CRE_H - 12);
+    }
+  } });
+  ents.sort((a, b) => a.y - b.y).forEach(e => e.draw());
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+  update(dt); render(); requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
