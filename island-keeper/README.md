@@ -1,6 +1,8 @@
 # Island Keeper (working title)
 
-Game sinh tồn / giữ đảo 2D phong cách Don't Starve, làm bằng Unity.
+Game nông trại trên đảo, phong cách pixel art 16-bit kiểu Harvest Moon, làm bằng Unity.
+
+> Đổi hướng (2026-10-16): bản Don't Starve (nhân vật "The Keeper", `ArtSource/characters/keeper/`, `Prototype/web/`) được giữ lại để tham khảo; hướng hiện tại là `ArtSource/characters/farmer/`.
 
 ## Pipeline art
 
@@ -15,6 +17,10 @@ Game sinh tồn / giữ đảo 2D phong cách Don't Starve, làm bằng Unity.
    [0x0funky/agent-sprite-forge](https://github.com/0x0funky/agent-sprite-forge).
 
 ## Trạng thái
+
+- [ ] Nhân vật chính pixel (Harvest Moon) - 3 concept chờ duyệt: `ArtSource/characters/farmer/review_board.png`
+
+### Lưu trữ: hướng Don't Starve
 
 - [ ] Nhân vật chính "The Keeper" - chờ duyệt: `ArtSource/characters/keeper/review_board.png`
 - [x] Web playtest `Prototype/web/` (canvas, đọc atlas + manifest): đi 4 hướng, tấn công, nhặt, đêm có đèn lồng

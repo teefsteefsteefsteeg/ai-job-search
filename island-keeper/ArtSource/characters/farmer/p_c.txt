@@ -1,0 +1,6 @@
+Character: a young island fisher-farmer boy with tanned skin: spiky black hair with a sky-blue headband, sleeveless orange vest over a white tank top, navy shorts with rolled hems, sandals, a small hoe slung on the back. Energetic grin.
+Art style: cozy 16-bit SNES / GBA farming-sim pixel art (classic farm life RPG look). TRUE pixel art: every pixel is a visible square block, the character is about 48 pixels tall and upscaled with nearest-neighbour so blocks are crisp; 1-pixel dark brown outline; limited bright cheerful palette (about 24 colours); simple 2-3 tone cel shading; NO anti-aliasing, NO gradients, NO blur, NO painterly texture. Cute chibi proportions: big round head about 1/3 of the body height, big friendly eyes, small body, short legs. Top-down RPG 3/4 camera like an overworld sprite.
+
+Layout: a character turnaround of the SAME character in three poses side by side, left to right: front view (facing the viewer), side view facing right, back view. All three standing idle, full body, same size, evenly spaced, generous empty margin around each.
+
+Background: perfectly flat solid pure magenta (#FF00FF) everywhere, no ground, no shadow, no text, no labels, no grid. Do not use magenta or pink on the character. Original character design, not any existing game character.

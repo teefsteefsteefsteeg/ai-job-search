@@ -1,0 +1,106 @@
+{
+  "kind": "sprite-gen-slice-sheet",
+  "version": 1,
+  "sheet": "concept_b.png",
+  "grid": [
+    3,
+    1
+  ],
+  "canvas": {
+    "w": 512,
+    "h": 768
+  },
+  "baseline_y": 725.0,
+  "target_height": 645.0,
+  "scale": "cell",
+  "fit": "none",
+  "factor": null,
+  "factor_from": null,
+  "alpha_cleanup": null,
+  "cells": [
+    {
+      "name": "front",
+      "file": "front.png",
+      "factor": 0.9684684684684685,
+      "factor_from": "target_height",
+      "subject": {
+        "sheet": {
+          "w": 402,
+          "h": 666
+        },
+        "canvas": {
+          "w": 389,
+          "h": 645
+        }
+      },
+      "box": {
+        "x": 62,
+        "y": 80,
+        "w": 389,
+        "h": 645
+      },
+      "anchor": [
+        256.5,
+        725.0
+      ],
+      "clipped_px": 0,
+      "parts": 1
+    },
+    {
+      "name": "side",
+      "file": "side.png",
+      "factor": 0.9684684684684685,
+      "factor_from": "target_height",
+      "subject": {
+        "sheet": {
+          "w": 386,
+          "h": 666
+        },
+        "canvas": {
+          "w": 374,
+          "h": 645
+        }
+      },
+      "box": {
+        "x": 70,
+        "y": 80,
+        "w": 374,
+        "h": 645
+      },
+      "anchor": [
+        257.0,
+        725.0
+      ],
+      "clipped_px": 0,
+      "parts": 1
+    },
+    {
+      "name": "back",
+      "file": "back.png",
+      "factor": 0.9684684684684685,
+      "factor_from": "target_height",
+      "subject": {
+        "sheet": {
+          "w": 402,
+          "h": 666
+        },
+        "canvas": {
+          "w": 389,
+          "h": 645
+        }
+      },
+      "box": {
+        "x": 62,
+        "y": 80,
+        "w": 389,
+        "h": 645
+      },
+      "anchor": [
+        256.5,
+        725.0
+      ],
+      "clipped_px": 0,
+      "parts": 1
+    }
+  ]
+}
