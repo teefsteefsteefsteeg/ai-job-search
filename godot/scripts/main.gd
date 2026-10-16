@@ -43,9 +43,13 @@ var trough := 0
 var rain := false
 var torch_time := 0.0
 var uid := 1
+var player_name := "Nông dân"
+var farm_name := "Gió Đồng"
+var char_model := "Cowboy_Male"
 
 # ---------------- player
 var player: Node3D
+var body: Node3D
 var p_anim: Models.AnimCtl
 var ppos := Vector3(Db.HX + 0.5, 0, Db.HZ + 3.5)
 var pyaw := 0.0
@@ -54,6 +58,7 @@ var running := false
 var hand_items := {}
 var torch_light: OmniLight3D
 var riding = null
+var p_speed := 0.0
 
 # ---------------- animals: Dictionary per animal (see make_animal)
 var animals: Array = []
@@ -185,12 +190,23 @@ func update_sky() -> void:
 
 # ================================================================= player
 func _setup_player() -> void:
-	player = Models.spawn("chars/Cowboy_Male", 1.75)
+	player = Node3D.new()
 	add_child(player)
-	p_anim = Models.AnimCtl.new(player)
+	torch_light = OmniLight3D.new(); torch_light.light_color = Color(1.0, 0.65, 0.35); torch_light.omni_range = 7.5; torch_light.light_energy = 0.0
+	torch_light.position = Vector3(0.3, 1.9, 0.3); player.add_child(torch_light)
+	set_player_model(char_model)
+
+## Swaps the farmer's look; tools are re-attached to the new model's right hand.
+func set_player_model(model: String) -> void:
+	char_model = model
+	if body != null: body.queue_free()
+	hand_items.clear()
+	body = Models.spawn("chars/" + model, 1.75)
+	player.add_child(body)
+	p_anim = Models.AnimCtl.new(body)
 	p_anim.loop("Idle")
 	var skel: Skeleton3D = null
-	for n in player.find_children("*", "Skeleton3D", true, false): skel = n
+	for n in body.find_children("*", "Skeleton3D", true, false): skel = n
 	if skel:
 		var bone := -1
 		for b in skel.get_bone_count():
@@ -206,8 +222,23 @@ func _setup_player() -> void:
 			holder.rotation_degrees = HOLD_ROT
 			for spec in [["axe", "survival/Axe", 0.3], ["pickaxe", "survival/Axe_Small", 0.32], ["hoe", "survival/Shovel", 0.55], ["torch", "survival/WoodenTorch_Fire", 0.42]]:
 				var item := Models.spawn_scaled(spec[1], spec[2]); item.visible = false; holder.add_child(item); hand_items[spec[0]] = item
-	torch_light = OmniLight3D.new(); torch_light.light_color = Color(1.0, 0.65, 0.35); torch_light.omni_range = 7.5; torch_light.light_energy = 0.0
-	torch_light.position = Vector3(0.3, 1.9, 0.3); player.add_child(torch_light)
+	if riding != null: p_anim.once("SitDown", 2.0, true)
+	show_tool()
+
+func animal_name(a: Dictionary) -> String:
+	var nick: String = a.get("nick", "")
+	return nick if nick != "" else String(a.def.name)
+
+## Called by the character creator.
+func apply_character(pname: String, fname: String, pet: String, model: String, first: bool) -> void:
+	player_name = pname.strip_edges() if pname.strip_edges() != "" else "Nông dân"
+	farm_name = fname.strip_edges() if fname.strip_edges() != "" else "Gió Đồng"
+	if model != char_model: set_player_model(model)
+	if pet.strip_edges() != "":
+		for a in animals:
+			if a.id == "cho" and a.state != "wild": a.nick = pet.strip_edges(); break
+	if first: ui.msg("Chào mừng %s đến với nông trại %s!" % [player_name, farm_name], "good")
+	save_game()
 
 func show_tool() -> void:
 	var id: String = Db.HOTBAR[sel].id
@@ -226,6 +257,7 @@ func update_player(dt: float) -> void:
 	var fwd := Vector3(-sin(cam_yaw), 0, -cos(cam_yaw)); var right := Vector3(cos(cam_yaw), 0, -sin(cam_yaw))
 	var mv := fwd * input.y + right * input.x
 	var amt := minf(1.0, mv.length())
+	var before := ppos
 	moving = amt > 0.1 and p_anim.lock <= 0.0
 	running = Input.is_action_pressed("run")
 	if moving:
@@ -239,6 +271,7 @@ func update_player(dt: float) -> void:
 		if world.can_stand(ppos.x, nz, r): ppos.z = nz
 		pyaw = lerp_angle(pyaw, atan2(mv.x, mv.z), minf(1.0, dt * 12.0))
 		if running: hunger -= dt * (0.08 if riding != null else 0.25)
+	p_speed = lerpf(p_speed, (ppos - before).length() / maxf(dt, 0.0001), minf(1.0, dt * 10.0))
 	if torch_on():
 		torch_time -= dt
 		if torch_time <= 0.0: ui.msg("Đuốc đã cháy hết.", "bad")
@@ -268,7 +301,7 @@ func make_animal(id: String, pos: Vector3, state := "wild") -> Dictionary:
 	animals_root.add_child(node)
 	var a := {"id": id, "def": def, "node": node, "anim": Models.AnimCtl.new(node), "pos": pos, "yaw": randf() * TAU, "state": state,
 		"trust": 0, "happy": 3, "unfed": 0, "fed": false, "target": pos, "timer": 0.0, "cooldown": 1.5, "hit_cd": 0.0, "calm": 0.0,
-		"moving": false, "fast": false, "uid": uid, "hits": 0, "scale": lvl_scale}
+		"moving": false, "fast": false, "uid": uid, "hits": 0, "scale": lvl_scale, "rest": false, "spd": 0.0, "nick": ""}
 	uid += 1
 	(a.anim as Models.AnimCtl).loop(def.get("idle", "Idle"))
 	node.position = pos
@@ -354,20 +387,20 @@ func update_animals(dt: float) -> void:
 		ctl.tick(dt)
 		var def: Dictionary = a.def
 		if a.state == "ridden":
-			_anim_move(a, moving, running)
+			_anim_move(a, p_speed > 0.35, p_speed)
 			continue
 		if a.state == "tied":
 			a.node.position = a.pos
 			var to: Vector3 = ppos - a.pos
 			a.yaw = lerp_angle(a.yaw, atan2(-to.x, -to.z), dt * 3.0)
 			a.node.rotation.y = a.yaw
-			_anim_move(a, true, true)
+			_anim_move(a, true, 4.0)
 			continue
 		var dp: float = a.pos.distance_to(ppos)
 		if a.state == "wild" and (dp > 40.0 or (def.get("night", false) and not night and dp > 10.0)):
 			remove_animal(a); continue
 		if not playing:
-			_anim_move(a, false, false)
+			_anim_move(a, false, 0.0)
 			a.node.position = a.pos + Vector3(0, _fly_y(a), 0)
 			continue
 		a.cooldown -= dt; a.hit_cd -= dt; a.calm -= dt
@@ -400,10 +433,15 @@ func update_animals(dt: float) -> void:
 					ctl.once(def.get("attack", "Jump"), 1.2)
 					hurt(10.0 if def.get("hostile", false) else 13.0, "%s tấn công bạn!" % def.name)
 			"follow":
-				target = ppos - Vector3(sin(pyaw), 0, cos(pyaw)) * (1.4 + float(def.size) * 0.4)
-				if a.pos.distance_to(target) > 14.0: a.pos = target
-				speed = 6.5 if a.pos.distance_to(target) > 3.0 else 4.0
-				if a.pos.distance_to(target) < 0.5: target = a.pos
+				var spot := ppos - Vector3(sin(pyaw), 0, cos(pyaw)) * (1.4 + float(def.size) * 0.4)
+				var dd: float = a.pos.distance_to(spot)
+				if dd > 14.0: a.pos = spot; dd = 0.0
+				# rest until the player is clearly away, so the animal does not twitch between idle and run
+				if a.get("rest", false):
+					if dd > 1.8: a.rest = false
+				elif dd < 0.6: a.rest = true
+				target = a.pos if a.get("rest", false) else spot
+				speed = 6.5 if dd > 3.0 else 3.5
 			"farm":
 				a.timer -= dt
 				if a.timer <= 0.0 or a.pos.distance_to(a.target) < 0.3:
@@ -415,19 +453,25 @@ func update_animals(dt: float) -> void:
 					if a.pos.distance_to(ppos) > 30.0: a.pos = Vector3(Db.HX + 6.5, 0, Db.HZ + 4.5)
 		var dir: Vector3 = target - a.pos; dir.y = 0
 		var r := 0.22 + float(def.size) * 0.12
-		a.moving = false
-		if dir.length() > 0.25:
+		var before: Vector3 = a.pos
+		var step := speed * dt
+		if dir.length() > 0.3:
 			dir = dir.normalized()
-			var nx: float = a.pos.x + dir.x * speed * dt; var nz: float = a.pos.z + dir.z * speed * dt
-			var moved := false
-			if def.get("fly", false) or world.can_stand(nx, a.pos.z, r): a.pos.x = nx; moved = true
-			if def.get("fly", false) or world.can_stand(a.pos.x, nz, r): a.pos.z = nz; moved = true
+			var fly: bool = def.get("fly", false)
+			# steer around trees and rocks instead of grinding against them
+			for ang in [0.0, 0.6, -0.6, 1.2, -1.2]:
+				var d2 := dir.rotated(Vector3.UP, ang)
+				var np: Vector3 = a.pos + d2 * step
+				if fly or world.can_stand(np.x, np.z, r):
+					a.pos = np; break
 			a.pos.x = clampf(a.pos.x, 1.0, W - 1.0); a.pos.z = clampf(a.pos.z, 1.0, H - 1.0)
-			if not moved: a.timer = 0.0
-			a.moving = moved
-			a.yaw = lerp_angle(a.yaw, atan2(dir.x, dir.z), minf(1.0, dt * 8.0))
-		a.fast = speed > 2.5
-		_anim_move(a, a.moving, a.fast)
+		var moved_v: Vector3 = a.pos - before
+		var moved_d := moved_v.length()
+		if dir.length() > 0.3 and moved_d < step * 0.3: a.timer = 0.0
+		if moved_d > 0.0001: a.yaw = lerp_angle(a.yaw, atan2(moved_v.x, moved_v.z), minf(1.0, dt * 8.0))
+		a.spd = lerpf(float(a.get("spd", 0.0)), moved_d / maxf(dt, 0.0001), minf(1.0, dt * 10.0))
+		a.moving = a.spd > 0.35
+		_anim_move(a, a.moving, a.spd)
 		a.node.position = a.pos + Vector3(0, _fly_y(a), 0)
 		a.node.rotation.y = a.yaw
 		if a.state == "wild" and not def.get("hostile", false) and def.get("aggressive", false) == false and dp < 0.9 and a.cooldown <= 0.0:
@@ -438,17 +482,18 @@ func _fly_y(a: Dictionary) -> float:
 	if not a.def.get("fly", false): return 0.0
 	return 0.9 + sin(clock_t * 2.5 + float(a.uid)) * 0.15
 
-func _anim_move(a: Dictionary, mv: bool, fast: bool) -> void:
+## Picks idle / walk / run and matches the playback speed to how fast the animal really moves.
+func _anim_move(a: Dictionary, mv: bool, spd: float) -> void:
 	var ctl: Models.AnimCtl = a.anim
 	var def: Dictionary = a.def
 	if not mv:
 		ctl.loop(def.get("idle", "Idle"))
 	elif def.get("hop", false):
-		ctl.loop("Jump", 1.5 if fast else 1.0)
-	elif fast and def.has("run"):
-		ctl.loop(def.run, 1.0)
+		ctl.loop("Jump", clampf(spd / 2.5, 0.8, 1.8))
+	elif spd > 3.2 and def.has("run"):
+		ctl.loop(def.run, clampf(spd / 8.0, 0.75, 1.5))
 	else:
-		ctl.loop(def.get("walk", "Walk"), 1.6 if fast else 1.0)
+		ctl.loop(def.get("walk", "Walk"), clampf(spd / 1.6, 0.6, 2.4))
 
 func _guard_near(p: Vector3, r: float) -> bool:
 	for a in animals:
@@ -677,7 +722,7 @@ func get_action():
 		"pickaxe":
 			if not tools.pickaxe: return {"label": "Chế tạo Rìu đá: 3 gỗ + 2 sợi cỏ (C)"}
 	if near != null and near.state != "wild":
-		return {"label": "%s · %s" % [near.def.name, Db.JOB_NAMES.get(near.def.get("job", "none"), "")]}
+		return {"label": "%s · %s" % [animal_name(near), Db.JOB_NAMES.get(near.def.get("job", "none"), "")]}
 	return null
 
 func do_action() -> void:
@@ -1132,10 +1177,10 @@ func new_game() -> void:
 	world.gen_terrain(seed); world.build_statics(); world.gen_objects(seed); world.paint_all()
 	ppos = Vector3(Db.HX + 0.5, 0, Db.HZ + 3.5); pyaw = 0.0; cam_yaw = 0.0
 	var dog := make_animal("cho", ppos + Vector3(-1.2, 0, -1.0), "follow")
-	dog.trust = 3; follower = dog
+	dog.trust = 3; dog.nick = "Mực"; follower = dog
 	cam.global_position = ppos + Vector3(0, 10, 12)
 	mode = Mode.INTRO
-	ui.open_intro()
+	ui.open_creator(true)
 
 func save_game() -> bool:
 	var tl := []; var cr := []; var ob := []; var an := []
@@ -1148,10 +1193,11 @@ func save_game() -> bool:
 		ob.append([o.kind, o.i, o.j, o.get("v", 0), 1 if o.get("berries", false) else 0, int(o.get("regrow", 0)), float(o.get("fuel", 0.0))])
 	for a in animals:
 		if a.state == "wild" or a.state == "tied": continue
-		an.append({"id": a.id, "state": "follow" if a.state == "ridden" else a.state, "happy": a.happy, "unfed": a.unfed, "x": a.pos.x, "z": a.pos.z})
+		an.append({"id": a.id, "state": "follow" if a.state == "ridden" else a.state, "happy": a.happy, "unfed": a.unfed, "x": a.pos.x, "z": a.pos.z, "nick": a.get("nick", "")})
 	var data := {"v": 1, "seed": seed, "day": day, "hour": hour, "gold": gold, "pending": pending, "hp": hp, "hunger": hunger, "sanity": sanity,
 		"water": water, "sel": sel, "seed_sel": seed_sel, "food_sel": food_sel, "tools": tools, "inv": inv, "trough": trough, "rain": rain,
-		"tilled": tl, "crops": cr, "objs": ob, "animals": an, "px": ppos.x, "pz": ppos.z}
+		"tilled": tl, "crops": cr, "objs": ob, "animals": an, "px": ppos.x, "pz": ppos.z,
+		"player_name": player_name, "farm_name": farm_name, "char_model": char_model}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null: return false
 	f.store_string(JSON.stringify(data)); f.close()
@@ -1166,6 +1212,9 @@ func load_game() -> bool:
 	seed = int(d.seed); day = int(d.day); hour = float(d.hour); gold = int(d.gold); pending = int(d.pending)
 	hp = float(d.hp); hunger = float(d.hunger); sanity = float(d.sanity); water = int(d.water); sel = int(d.sel)
 	seed_sel = d.seed_sel; food_sel = d.food_sel; tools = d.tools; trough = int(d.trough); rain = bool(d.rain)
+	player_name = d.get("player_name", player_name); farm_name = d.get("farm_name", farm_name)
+	var look: String = d.get("char_model", "Cowboy_Male")
+	if look != char_model: set_player_model(look)
 	inv = {}
 	for k in item_names: inv[k] = 0
 	for k in d.inv: inv[k] = int(d.inv[k])
@@ -1189,7 +1238,7 @@ func load_game() -> bool:
 	if not world.can_stand(ppos.x, ppos.z): ppos = Vector3(Db.HX + 0.5, 0, Db.HZ + 3.5)
 	for a in d.animals:
 		var an := make_animal(a.id, Vector3(float(a.x), 0, float(a.z)), a.state)
-		an.happy = int(a.happy); an.unfed = int(a.unfed); an.trust = 3
+		an.happy = int(a.happy); an.unfed = int(a.unfed); an.trust = 3; an.nick = a.get("nick", "")
 		if an.state == "follow":
 			if follower == null: follower = an
 			else: an.state = "farm"

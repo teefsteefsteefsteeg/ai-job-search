@@ -93,6 +93,15 @@ const ANIMALS := {
 const JOB_NAMES := {"guard": "Gác đêm", "comfort": "Âu yếm", "forage": "Đánh hơi", "milk": "Vắt sữa", "wool": "Cho len", "truffle": "Tìm nấm",
 	"water": "Tưới cây", "fruit": "Hái quả", "carry": "Chở hàng", "none": "Thú cưỡi", "dragon": "Rồng"}
 
+## Playable looks (Quaternius Ultimate Animated Characters; all share one rig and animation set).
+const CHARACTERS := [
+	["Cowboy_Male", "Cao bồi"], ["Cowboy_Female", "Nữ cao bồi"], ["Worker_Male", "Nông dân"], ["Worker_Female", "Nữ nông dân"],
+	["Casual_Male", "Chàng trai"], ["Casual_Female", "Cô gái"], ["Casual2_Male", "Phong trần"], ["Casual2_Female", "Năng động"],
+	["Kimono_Male", "Kimono nam"], ["Kimono_Female", "Kimono nữ"], ["Viking_Male", "Viking"], ["Viking_Female", "Nữ Viking"],
+	["Pirate_Male", "Cướp biển"], ["Pirate_Female", "Nữ cướp biển"], ["Ninja_Male", "Ninja"], ["Ninja_Female", "Nữ ninja"],
+	["Elf", "Tiên tộc"], ["Witch", "Phù thủy"], ["Wizard", "Pháp sư"],
+]
+
 const HOTBAR := [
 	{"id": "hand", "name": "Tay"}, {"id": "hoe", "name": "Cuốc"}, {"id": "can", "name": "Bình tưới"}, {"id": "axe", "name": "Rìu"},
 	{"id": "pickaxe", "name": "Rìu đá"}, {"id": "seeds", "name": "Hạt giống"}, {"id": "food", "name": "Thức ăn"}, {"id": "rope", "name": "Dây thừng"},

@@ -43,6 +43,11 @@ var clock_panel: PanelContainer
 var help_label: Label
 var hotbar_panel: PanelContainer
 var modal_panel: Panel
+var name_label: Label
+var preview_holder: Node3D
+var preview_anim
+var creator_pick := ""
+var creator_buttons := {}
 
 func _ready() -> void:
 	font_body = load("res://assets/fonts/Be_Vietnam_Pro_wght-500.ttf")
@@ -101,6 +106,7 @@ func _anchor(c: Control, preset: int, offset: Vector2) -> void:
 func _build_stats() -> void:
 	var p := PanelContainer.new(); root.add_child(p); stats_panel = p
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 6); p.add_child(v)
+	name_label = _label("", 15, WHEAT, font_bold); v.add_child(name_label)
 	for spec in [["hp", "Máu", HP_C], ["food", "No bụng", FOOD_C], ["mind", "Tinh thần", MIND_C]]:
 		var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8); v.add_child(h)
 		var l := _label(spec[1], 14); l.custom_minimum_size.x = 78; h.add_child(l)
@@ -189,6 +195,11 @@ func _process(dt: float) -> void:
 	if game == null: return
 	_layout()
 	_set_bar("hp", game.hp); _set_bar("food", game.hunger); _set_bar("mind", game.sanity)
+	name_label.text = "%s · nông trại %s" % [game.player_name, game.farm_name]
+	if preview_holder != null and is_instance_valid(preview_holder):
+		preview_holder.rotate_y(dt * 0.6)
+		if preview_anim != null:
+			(preview_anim as Models.AnimCtl).tick(dt); (preview_anim as Models.AnimCtl).loop("Idle")
 	var h := int(game.hour); var m := int((game.hour - h) * 6) * 10
 	clock_time.text = "%02d:%02d" % [h, m]
 	var wx := ("Tuyết rơi" if game.season() == 3 else "Mưa") if game.rain else ("Đêm" if game.is_night() else "Nắng")
@@ -207,7 +218,7 @@ func _process(dt: float) -> void:
 	follower_box.visible = f != null
 	if f != null:
 		var job: String = Db.JOB_NAMES.get(f.def.get("job", "none"), "")
-		follower_label.text = "%s %s · %s%s" % ["Đang cưỡi" if game.riding != null else "Đi cùng:", f.def.name, job, " · F để cưỡi" if game.riding == null and float(f.def.get("ride", 0.0)) > 0.0 else ""]
+		follower_label.text = "%s %s · %s%s" % ["Đang cưỡi" if game.riding != null else "Đi cùng:", game.animal_name(f), job, " · F để cưỡi" if game.riding == null and float(f.def.get("ride", 0.0)) > 0.0 else ""]
 	vignette.modulate.a = (1.0 - game.sanity / 35.0) * 0.9 if game.sanity < 35 else 0.0
 	tame_panel.visible = game.tame != null
 	if game.tame != null:
@@ -419,7 +430,7 @@ func open_herd() -> void:
 		var job_name: String = Db.JOB_NAMES.get(d.get("job", "none"), "")
 		var fed_text := " · hôm nay đã ăn" if a.fed else ""
 		var sub := "%s · %s · %s · thích: %s%s" % [hearts, job_name, d.text, game.diet_names(d.diet), fed_text]
-		_row("%s · %s" % [d.name, status], sub, btns)
+		_row("%s · %s" % [game.animal_name(a), status], sub, btns)
 
 func _to_trough(k: String, units: int) -> void:
 	game.inv[k] -= 1; game.trough += units
@@ -444,6 +455,7 @@ func _release(a: Dictionary) -> void:
 func open_menu() -> void:
 	_open("Menu")
 	_row("Lưu game", "Tự lưu mỗi khi ngủ và mỗi 45 giây.", [["Lưu", _save_now, true]])
+	_row("Đổi nhân vật", "Đổi tên, tên nông trại và ngoại hình.", [["Mở", open_creator.bind(false), game.riding == null]])
 	_row("Chơi lại từ đầu", "Xóa tiến trình hiện tại.", [["Chơi lại", _confirm_new, true]])
 	_row("Thoát game", "", [["Thoát", _quit, true]])
 	_note("Model 3D: Quaternius (quaternius.com), giấy phép CC0. Font: Be Vietnam Pro, Baloo 2 (SIL OFL).")
@@ -481,3 +493,80 @@ func _do_new() -> void:
 func _wake() -> void:
 	modal.visible = false
 	game.wake_up()
+
+# ---------------------------------------------------------------- character creator
+func open_creator(first: bool) -> void:
+	_open("Tạo nhân vật" if first else "Đổi nhân vật", not first)
+	creator_pick = game.char_model
+	creator_buttons.clear()
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 18); modal_body.add_child(h)
+	# live 3D preview in its own world
+	var svc := SubViewportContainer.new(); svc.stretch = true; svc.custom_minimum_size = Vector2(260, 360)
+	var sv := SubViewport.new(); sv.own_world_3d = true; sv.transparent_bg = true; sv.size = Vector2i(260, 360)
+	sv.msaa_3d = Viewport.MSAA_2X
+	svc.add_child(sv); h.add_child(svc)
+	var we := WorldEnvironment.new(); var e := Environment.new(); e.background_mode = Environment.BG_CLEAR_COLOR
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; e.ambient_light_color = Color(0.75, 0.72, 0.65); e.ambient_light_energy = 0.8
+	we.environment = e; sv.add_child(we)
+	var key := DirectionalLight3D.new(); key.rotation_degrees = Vector3(-35, 35, 0); key.light_energy = 1.1; sv.add_child(key)
+	var disc := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.75; cm.bottom_radius = 0.75; cm.height = 0.06; disc.mesh = cm
+	var dm := StandardMaterial3D.new(); dm.albedo_color = Color("6f9a4a"); disc.material_override = dm; disc.position.y = -0.03; sv.add_child(disc)
+	preview_holder = Node3D.new(); sv.add_child(preview_holder)
+	var cam := Camera3D.new(); cam.fov = 35.0; sv.add_child(cam)
+	cam.transform = Transform3D(Basis.looking_at(Vector3(0, 0.9, 0) - Vector3(0, 1.3, 4.2), Vector3.UP), Vector3(0, 1.3, 4.2))
+	var right := VBoxContainer.new(); right.size_flags_horizontal = Control.SIZE_EXPAND_FILL; right.add_theme_constant_override("separation", 8); h.add_child(right)
+	var name_edit := _field(right, "Tên nhân vật", game.player_name)
+	var farm_edit := _field(right, "Tên nông trại", game.farm_name)
+	var pet_edit: LineEdit = null
+	var dog_name := ""
+	for a in game.animals:
+		if a.id == "cho" and a.state != "wild": dog_name = game.animal_name(a); break
+	if dog_name != "": pet_edit = _field(right, "Tên chú chó", dog_name)
+	right.add_child(_label("NGOẠI HÌNH", 13, MUTED, font_bold))
+	var grid := GridContainer.new(); grid.columns = 4; grid.add_theme_constant_override("h_separation", 5); grid.add_theme_constant_override("v_separation", 5)
+	right.add_child(grid)
+	for c in Db.CHARACTERS:
+		var b := Button.new(); b.text = c[1]; b.focus_mode = Control.FOCUS_NONE; b.add_theme_font_size_override("font_size", 14)
+		b.custom_minimum_size = Vector2(104, 30)
+		b.pressed.connect(_creator_select.bind(c[0]))
+		grid.add_child(b); creator_buttons[c[0]] = b
+	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); right.add_child(row)
+	var rnd := Button.new(); rnd.text = "Ngẫu nhiên"; rnd.focus_mode = Control.FOCUS_NONE; rnd.pressed.connect(_creator_random); row.add_child(rnd)
+	var ok := Button.new(); ok.text = "Bắt đầu chơi" if first else "Lưu thay đổi"; ok.focus_mode = Control.FOCUS_NONE
+	ok.pressed.connect(_creator_done.bind(name_edit, farm_edit, pet_edit, first)); row.add_child(ok)
+	_creator_select(creator_pick)
+
+func _field(parent: Control, title: String, value: String) -> LineEdit:
+	parent.add_child(_label(title.to_upper(), 13, MUTED, font_bold))
+	var le := LineEdit.new(); le.text = value; le.max_length = 24; le.custom_minimum_size = Vector2(0, 38)
+	le.add_theme_stylebox_override("normal", _box(Color(1, 1, 1, 0.06), 8, Color(1, 1, 1, 0.18), 10))
+	le.add_theme_stylebox_override("focus", _box(Color(1, 1, 1, 0.08), 8, WHEAT, 10))
+	le.add_theme_color_override("font_color", INK)
+	parent.add_child(le)
+	return le
+
+func _creator_select(model: String) -> void:
+	creator_pick = model
+	for k in creator_buttons:
+		var b: Button = creator_buttons[k]
+		var on: bool = k == model
+		var sb := _box(WHEAT if on else Color(1, 1, 1, 0.06), 8, WHEAT if on else Color(1, 1, 1, 0.14), 8)
+		b.add_theme_stylebox_override("normal", sb); b.add_theme_stylebox_override("hover", sb)
+		b.add_theme_color_override("font_color", Color("2a1d05") if on else INK)
+		b.add_theme_color_override("font_hover_color", Color("2a1d05") if on else INK)
+	if preview_holder == null or not is_instance_valid(preview_holder): return
+	for c in preview_holder.get_children(): c.queue_free()
+	var m := Models.spawn("chars/" + model, 1.75)
+	preview_holder.add_child(m)
+	preview_anim = Models.AnimCtl.new(m)
+	(preview_anim as Models.AnimCtl).once("Victory", 1.0)
+
+func _creator_random() -> void:
+	_creator_select(Db.CHARACTERS.pick_random()[0])
+
+func _creator_done(name_edit: LineEdit, farm_edit: LineEdit, pet_edit, first: bool) -> void:
+	var pet: String = pet_edit.text if pet_edit != null else ""
+	game.apply_character(name_edit.text, farm_edit.text, pet, creator_pick, first)
+	preview_holder = null; preview_anim = null
+	if first: open_intro()
+	else: close_modal()

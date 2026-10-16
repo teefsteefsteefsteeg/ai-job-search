@@ -20,6 +20,11 @@ func _process(_d):
 	f += 1
 	if f == 3:
 		g = current_scene
+		g.ui._creator_select("Viking_Female")
+		var le := LineEdit.new(); le.text = "Lan"; var le2 := LineEdit.new(); le2.text = "Hoa Sen"; var le3 := LineEdit.new(); le3.text = "Vàng"
+		g.ui._creator_done(le, le2, le3, true)
+		check(g.player_name == "Lan" and g.farm_name == "Hoa Sen" and g.char_model == "Viking_Female", "character created")
+		check(g.animal_name(g.follower) == "Vàng", "dog renamed")
 		g.ui._start_game()
 		# farming
 		g.ppos = Vector3(Db.HX + 0.5, 0, Db.HZ + 5.5); g.pyaw = 0.0
@@ -87,6 +92,7 @@ func _process(_d):
 		var tamed_before: int = g.tamed_list().size()
 		check(g.save_game(), "saved")
 		check(g.load_game(), "loaded")
+		check(g.char_model == "Viking_Female" and g.player_name == "Lan", "look and name restored")
 		check(g.tamed_list().size() == tamed_before, "animals restored (%d of %d)" % [g.tamed_list().size(), tamed_before])
 		# death & wake
 		g.hunger = 0; g.hp = 0; g.update_survival(0.1)

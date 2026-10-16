@@ -198,6 +198,7 @@ class AnimCtl:
 	var lock := 0.0
 	var cur := ""
 	var hold := false
+	var switch_t := 0.0
 
 	func _init(root: Node) -> void:
 		ap = root.find_child("AnimationPlayer", true, false) as AnimationPlayer
@@ -213,12 +214,17 @@ class AnimCtl:
 		if ap == null or lock > 0.0 or hold: return
 		var full: String = names.get(n.to_lower(), "")
 		if full == "": return
-		ap.speed_scale = speed
-		if cur == full: return
+		if cur == full:
+			ap.speed_scale = speed
+			return
+		# hold a locomotion clip briefly so rapid idle/walk/run flips cannot freeze the pose
+		if cur != "" and switch_t > 0.0: return
 		var a := ap.get_animation(full)
 		a.loop_mode = Animation.LOOP_LINEAR
-		ap.play(full, 0.18)
+		ap.speed_scale = speed
+		ap.play(full, 0.2)
 		cur = full
+		switch_t = 0.3
 
 	func once(n: String, speed := 1.0, keep := false) -> float:
 		if ap == null: return 0.0
@@ -238,6 +244,7 @@ class AnimCtl:
 		hold = false; lock = 0.0; cur = ""
 
 	func tick(dt: float) -> void:
+		switch_t -= dt
 		if lock > 0.0:
 			lock -= dt
 			if lock <= 0.0 and not hold: cur = ""

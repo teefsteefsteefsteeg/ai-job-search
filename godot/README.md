@@ -12,6 +12,8 @@ Built with **Godot 4.7** (GDScript). The world, UI and game logic are created in
 
 To make a standalone game: **Project → Export**, add Windows/Linux/macOS, and let Godot download the export templates.
 
+On first launch you create your farmer: name, farm name, the dog's name and one of 19 looks (changeable later from the Esc menu).
+
 ## Controls
 
 | Key | Action |
