@@ -17,6 +17,7 @@ Game sinh tồn / giữ đảo 2D phong cách Don't Starve, làm bằng Unity.
 ## Trạng thái
 
 - [ ] Nhân vật chính "The Keeper" - chờ duyệt: `ArtSource/characters/keeper/review_board.png`
+- [x] Web playtest `Prototype/web/` (canvas, đọc atlas + manifest): đi 4 hướng, tấn công, nhặt, đêm có đèn lồng
 - [ ] Unity project (URP 2D), di chuyển 8 hướng, camera kiểu Don't Starve
 - [x] Sprite set v1 (`ArtSource/characters/keeper/sprites/`): idle + walk cho 3 hướng (down/side/up, left = mirror side), gather, attack.
   Atlas `sprite-sheet-alpha.png` + `manifest.json`, preview `preview_all.gif`, QA `qa-notes.md`.

@@ -1,0 +1,247 @@
+<title>The Keeper Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;700&display=swap">
+<style>
+/* Layout: one dark storybook stage, title + key legend above, touch controls overlaid on the canvas */
+:root {
+  --ink: #120e0b;
+  --paper: #e9dcbf;
+  --muted: #a8977a;
+  --rust: #b0532f;
+  --sea: #1d3a3c;
+  --panel: #241c16;
+  --display: "IM Fell English SC", "Georgia", serif;
+  --body: "Alegreya Sans", "Trebuchet MS", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--ink); color: var(--paper); font-family: var(--body); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 10px;
+}
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: 1.9rem; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: .9rem; }
+kbd { font-family: var(--body); font-weight: 700; color: var(--paper); border: 1px solid #4a3c2e; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--panel); }
+.stage { position: relative; flex: 1; min-height: 300px; border: 2px solid #3b2f24; border-radius: 6px; overflow: hidden; background: var(--sea); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hud { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.hud .chip { font-size: .85rem; background: rgba(18,14,11,.72); border: 1px solid #4a3c2e; border-radius: 999px; padding: 3px 10px; color: var(--paper); font-variant-numeric: tabular-nums; }
+button {
+  font-family: var(--display); font-size: 1.05rem; color: var(--paper); background: rgba(36,28,22,.85);
+  border: 2px solid #5a4734; border-radius: 999px; padding: 6px 14px; cursor: pointer;
+}
+button:hover { border-color: var(--rust); }
+button:focus-visible { outline: 2px solid var(--rust); outline-offset: 2px; }
+.top-right { position: absolute; top: 10px; right: 10px; }
+.actions { position: absolute; right: 14px; bottom: 14px; display: flex; gap: 10px; }
+.actions button { width: 64px; height: 64px; padding: 0; font-size: .95rem; }
+.hint { position: absolute; left: 14px; bottom: 14px; color: var(--muted); font-size: .85rem; max-width: 46%; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) { .actions { display: none; } }
+@media (hover: none) { .hint .desk { display: none; } }
+@media (hover: hover) { .hint .touch { display: none; } }
+</style>
+
+<header>
+  <h1>The Keeper</h1>
+  <div class="legend">
+    <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / mũi tên: đi</span>
+    <span><kbd>Space</kbd> tấn công</span>
+    <span><kbd>E</kbd> nhặt đồ</span>
+    <span><kbd>N</kbd> ngày / đêm</span>
+  </div>
+</header>
+
+<div class="stage" id="stage">
+  <canvas id="c" aria-label="Màn chơi thử: nhân vật The Keeper trên đảo"></canvas>
+  <div class="hud"><span class="chip" id="stateChip">down_idle</span></div>
+  <div class="top-right"><button id="nightBtn" type="button">Đêm</button></div>
+  <div class="hint"><span class="desk">Bấm vào màn chơi rồi dùng bàn phím.</span><span class="touch">Kéo ngón tay trên màn để đi.</span></div>
+  <div class="actions">
+    <button id="gatherBtn" type="button">Nhặt</button>
+    <button id="attackBtn" type="button">Đánh</button>
+  </div>
+</div>
+
+<script>
+const M = {"rows":{"down_idle":[[0,0],[256,0],[512,0],[768,0]],"side_idle":[[0,320],[256,320],[512,320],[768,320]],"up_idle":[[0,640],[256,640],[512,640],[768,640]],"down_walk":[[0,960],[256,960],[512,960],[768,960],[1024,960],[1280,960]],"side_walk":[[0,1280],[256,1280],[512,1280],[768,1280],[1024,1280],[1280,1280]],"up_walk":[[0,1600],[256,1600],[512,1600],[768,1600],[1024,1600],[1280,1600]],"down_gather":[[0,1920],[256,1920],[512,1920],[768,1920]],"down_attack":[[0,2240],[256,2240],[512,2240],[768,2240]]},"anim":{"down_idle":{"fps":4,"loop":true},"side_idle":{"fps":4,"loop":true},"up_idle":{"fps":4,"loop":true},"down_walk":{"fps":10,"loop":true},"side_walk":{"fps":10,"loop":true},"up_walk":{"fps":10,"loop":true},"down_gather":{"fps":8,"loop":false},"down_attack":{"fps":10,"loop":false}}};
+const CW = 256, CH = 320, FOOT_Y = 290;       // cell size and ground line inside each cell
+const SPR = 0.5;                               // sprite draw scale in world units
+const SPEED = 170;                             // world px / s
+const WORLD = 2400;
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const chip = document.getElementById('stateChip');
+const atlas = new Image(); atlas.src = 'keeper-atlas.png';
+
+// ---------- island ----------
+function rnd(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+const R = rnd(7);
+const harm = Array.from({length: 6}, (_, i) => ({a: (R() * 0.09) / (i * 0.6 + 1), f: i + 2, p: R() * 6.28}));
+const CX = WORLD / 2, CY = WORLD / 2, BASE_R = 880;
+function islandR(t) { let r = 1; for (const h of harm) r += h.a * Math.sin(h.f * t + h.p); return BASE_R * r; }
+
+const ground = document.createElement('canvas'); ground.width = ground.height = WORLD;
+(function paintGround() {
+  const g = ground.getContext('2d');
+  g.fillStyle = '#1d3a3c'; g.fillRect(0, 0, WORLD, WORLD);
+  // sea scratches
+  g.strokeStyle = 'rgba(160,190,180,.10)'; g.lineWidth = 2;
+  for (let i = 0; i < 380; i++) { const x = R() * WORLD, y = R() * WORLD, l = 20 + R() * 40; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + l / 2, y - 5, x + l, y); g.stroke(); }
+  const shape = (scale) => { g.beginPath(); for (let i = 0; i <= 180; i++) { const t = i / 180 * Math.PI * 2, r = islandR(t) * scale; g[i ? 'lineTo' : 'moveTo'](CX + Math.cos(t) * r, CY + Math.sin(t) * r * 0.82); } g.closePath(); };
+  shape(1.06); g.fillStyle = '#c2ab7d'; g.fill();                 // wet sand rim
+  shape(1.0); g.fillStyle = '#5f6a3c'; g.fill();                  // turf
+  g.lineWidth = 6; g.strokeStyle = '#120e0b'; g.stroke();
+  g.save(); shape(1.0); g.clip();
+  for (let i = 0; i < 900; i++) {                                 // turf blotches
+    const x = R() * WORLD, y = R() * WORLD, r = 20 + R() * 90;
+    g.fillStyle = ['rgba(73,82,44,.55)', 'rgba(110,104,58,.45)', 'rgba(52,58,34,.5)', 'rgba(120,96,60,.35)'][i % 4];
+    g.beginPath(); g.ellipse(x, y, r, r * 0.6, R() * 3, 0, 7); g.fill();
+  }
+  g.strokeStyle = 'rgba(18,14,11,.7)'; g.lineWidth = 2;             // grass tufts
+  for (let i = 0; i < 1400; i++) {
+    const x = R() * WORLD, y = R() * WORLD;
+    for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(x + k * 3, y); g.quadraticCurveTo(x + k * 5, y - 8, x + k * 7 + (R() - .5) * 4, y - 12 - R() * 6); g.stroke(); }
+  }
+  for (let i = 0; i < 70; i++) {                                  // rocks
+    const x = R() * WORLD, y = R() * WORLD, s = 10 + R() * 22;
+    g.fillStyle = '#8b8170'; g.strokeStyle = '#120e0b'; g.lineWidth = 3;
+    g.beginPath(); g.ellipse(x, y, s, s * 0.62, 0, 0, 7); g.fill(); g.stroke();
+    g.strokeStyle = 'rgba(18,14,11,.5)'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(x - s * .4, y - s * .1); g.lineTo(x + s * .2, y + s * .2); g.stroke();
+  }
+  g.restore();
+})();
+
+// ---------- player ----------
+const P = { x: CX, y: CY + 120, facing: 'down', flip: false, state: 'idle', t: 0, action: null };
+const keys = new Set();
+let joy = null;           // {id, ox, oy, dx, dy}
+let night = false;
+
+function rowKey() {
+  if (P.action) return 'down_' + P.action;
+  return P.facing + '_' + P.state;
+}
+function startAction(a) {
+  if (P.action) return;
+  P.action = a; P.t = 0; P.facing = 'down'; P.flip = false;
+}
+
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+  if (k === ' ') startAction('attack');
+  else if (k === 'e') startAction('gather');
+  else if (k === 'n') toggleNight();
+  else keys.add(k);
+});
+addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => keys.clear());
+
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); joy = { id: e.pointerId, ox: e.offsetX, oy: e.offsetY, dx: 0, dy: 0 }; });
+cv.addEventListener('pointermove', e => { if (joy && e.pointerId === joy.id) { joy.dx = e.offsetX - joy.ox; joy.dy = e.offsetY - joy.oy; } });
+const endJoy = e => { if (joy && e.pointerId === joy.id) joy = null; };
+cv.addEventListener('pointerup', endJoy); cv.addEventListener('pointercancel', endJoy);
+document.getElementById('attackBtn').onclick = () => startAction('attack');
+document.getElementById('gatherBtn').onclick = () => startAction('gather');
+const nightBtn = document.getElementById('nightBtn');
+function toggleNight() { night = !night; nightBtn.textContent = night ? 'Ngày' : 'Đêm'; }
+nightBtn.onclick = toggleNight;
+
+function inputVec() {
+  let x = 0, y = 0;
+  if (keys.has('a') || keys.has('arrowleft')) x--;
+  if (keys.has('d') || keys.has('arrowright')) x++;
+  if (keys.has('w') || keys.has('arrowup')) y--;
+  if (keys.has('s') || keys.has('arrowdown')) y++;
+  if (joy) { const l = Math.hypot(joy.dx, joy.dy); if (l > 12) { x = joy.dx / l; y = joy.dy / l; } }
+  const l = Math.hypot(x, y); return l ? [x / l, y / l] : [0, 0];
+}
+
+function update(dt) {
+  P.t += dt;
+  if (P.action) {
+    const key = 'down_' + P.action, n = M.rows[key].length;
+    if (P.t * M.anim[key].fps >= n + 1) { P.action = null; P.t = 0; }   // hold last frame one tick
+    return;
+  }
+  const [vx, vy] = inputVec();
+  const moving = vx || vy;
+  const next = moving ? 'walk' : 'idle';
+  if (next !== P.state) { P.state = next; P.t = 0; }
+  if (!moving) return;
+  // Don't Starve style: horizontal component wins on diagonals
+  if (Math.abs(vx) > 0.35) { P.facing = 'side'; P.flip = vx < 0; }
+  else { P.facing = vy < 0 ? 'up' : 'down'; P.flip = false; }
+  let nx = P.x + vx * SPEED * dt, ny = P.y + vy * SPEED * dt;
+  const t = Math.atan2((ny - CY) / 0.82, nx - CX), maxR = islandR(t) - 40;
+  const d = Math.hypot(nx - CX, (ny - CY) / 0.82);
+  if (d > maxR) { nx = CX + Math.cos(t) * maxR; ny = CY + Math.sin(t) * maxR * 0.82; }
+  P.x = nx; P.y = ny;
+}
+
+// ---------- render ----------
+let dpr = 1, vw = 0, vh = 0, zoom = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  const r = stage.getBoundingClientRect(); vw = r.width; vh = r.height;
+  cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr);
+  zoom = Math.max(0.6, Math.min(1.25, Math.min(vw / 900, vh / 560)));
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+const dark = document.createElement('canvas'), dg = dark.getContext('2d');
+function render(now) {
+  const key = rowKey(), rects = M.rows[key], a = M.anim[key];
+  let idx = Math.floor(P.t * a.fps);
+  idx = a.loop ? idx % rects.length : Math.min(idx, rects.length - 1);
+  chip.textContent = key + (P.flip ? ' (lật)' : '') + '  ·  frame ' + idx;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const camX = P.x - vw / 2 / zoom, camY = P.y - 60 - vh / 2 / zoom;
+  ctx.save(); ctx.scale(zoom, zoom); ctx.translate(-camX, -camY);
+  ctx.drawImage(ground, 0, 0);
+  // shadow
+  ctx.fillStyle = 'rgba(18,14,11,.45)';
+  ctx.beginPath(); ctx.ellipse(P.x, P.y, 34, 10, 0, 0, 7); ctx.fill();
+  if (atlas.complete && atlas.naturalWidth) {
+    const [sx, sy] = rects[idx], w = CW * SPR, h = CH * SPR;
+    ctx.save(); ctx.translate(P.x, P.y); if (P.flip) ctx.scale(-1, 1);
+    ctx.drawImage(atlas, sx, sy, CW, CH, -w / 2, -FOOT_Y * SPR, w, h);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  if (night) {
+    if (dark.width !== cv.width || dark.height !== cv.height) { dark.width = cv.width; dark.height = cv.height; }
+    dg.setTransform(1, 0, 0, 1, 0, 0); dg.globalCompositeOperation = 'source-over';
+    dg.clearRect(0, 0, dark.width, dark.height);
+    dg.fillStyle = 'rgba(8,7,16,.9)'; dg.fillRect(0, 0, dark.width, dark.height);
+    const lx = ((P.x + (P.flip ? -22 : 22)) - camX) * zoom * dpr, ly = ((P.y - 55) - camY) * zoom * dpr;
+    const rad = (210 + Math.sin(now / 90) * 6 + Math.sin(now / 37) * 4) * zoom * dpr;
+    const grd = dg.createRadialGradient(lx, ly, rad * 0.15, lx, ly, rad);
+    grd.addColorStop(0, 'rgba(0,0,0,1)'); grd.addColorStop(0.55, 'rgba(0,0,0,.75)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    dg.globalCompositeOperation = 'destination-out'; dg.fillStyle = grd;
+    dg.beginPath(); dg.arc(lx, ly, rad, 0, 7); dg.fill();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(dark, 0, 0);
+    const warm = ctx.createRadialGradient(lx, ly, 0, lx, ly, rad * 0.7);
+    warm.addColorStop(0, 'rgba(255,190,90,.22)'); warm.addColorStop(1, 'rgba(255,190,90,0)');
+    ctx.fillStyle = warm; ctx.fillRect(0, 0, cv.width, cv.height);
+  }
+}
+
+let last = performance.now();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(now) {
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+  update(dt); render(reduce ? 0 : now);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+cv.tabIndex = 0;
+</script>
