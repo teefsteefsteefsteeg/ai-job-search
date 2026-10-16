@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-generation-plan",
+  "order": [
+    {
+      "stage": 1,
+      "name": "direction-anchors",
+      "items": [
+        {
+          "state": "down_idle",
+          "role": "direction-anchor",
+          "direction": "down",
+          "refs": [
+            "base-source.*",
+            "references/layout-guides/down/idle.png"
+          ],
+          "note": "base 는 방향 앵커 생성까지만 identity 소스다 — 앵커 수락 후 행 생성에 base 를 재부착하지 않는다"
+        },
+        {
+          "state": "downside_idle",
+          "role": "direction-anchor",
+          "direction": "downside",
+          "refs": [
+            "base-source.*",
+            "references/layout-guides/downside/idle.png"
+          ],
+          "note": "base 는 방향 앵커 생성까지만 identity 소스다 — 앵커 수락 후 행 생성에 base 를 재부착하지 않는다"
+        },
+        {
+          "state": "side_idle",
+          "role": "direction-anchor",
+          "direction": "side",
+          "refs": [
+            "base-source.*",
+            "references/layout-guides/side/idle.png"
+          ],
+          "note": "base 는 방향 앵커 생성까지만 identity 소스다 — 앵커 수락 후 행 생성에 base 를 재부착하지 않는다"
+        },
+        {
+          "state": "upside_idle",
+          "role": "direction-anchor",
+          "direction": "upside",
+          "refs": [
+            "base-source.*",
+            "references/layout-guides/upside/idle.png"
+          ],
+          "note": "base 는 방향 앵커 생성까지만 identity 소스다 — 앵커 수락 후 행 생성에 base 를 재부착하지 않는다"
+        },
+        {
+          "state": "up_idle",
+          "role": "direction-anchor",
+          "direction": "up",
+          "refs": [
+            "base-source.*",
+            "references/layout-guides/up/idle.png"
+          ],
+          "note": "base 는 방향 앵커 생성까지만 identity 소스다 — 앵커 수락 후 행 생성에 base 를 재부착하지 않는다"
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "name": "action-rows",
+      "items": [
+        {
+          "state": "down_walk",
+          "role": "action-row",
+          "direction": "down",
+          "refs": [
+            "references/anchors/down-anchor-x8.png",
+            "references/layout-guides/down/walk.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction down",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "downside_walk",
+          "role": "action-row",
+          "direction": "downside",
+          "refs": [
+            "references/anchors/downside-anchor-x8.png",
+            "references/layout-guides/downside/walk.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction downside",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "side_walk",
+          "role": "action-row",
+          "direction": "side",
+          "refs": [
+            "references/anchors/side-anchor-x8.png",
+            "references/layout-guides/side/walk.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction side",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "upside_walk",
+          "role": "action-row",
+          "direction": "upside",
+          "refs": [
+            "references/anchors/upside-anchor-x8.png",
+            "references/layout-guides/upside/walk.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction upside",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "up_walk",
+          "role": "action-row",
+          "direction": "up",
+          "refs": [
+            "references/anchors/up-anchor-x8.png",
+            "references/layout-guides/up/walk.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction up",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "down_hoe",
+          "role": "action-row",
+          "direction": "down",
+          "refs": [
+            "references/anchors/down-anchor-x8.png",
+            "references/layout-guides/down/hoe.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction down",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "down_water",
+          "role": "action-row",
+          "direction": "down",
+          "refs": [
+            "references/anchors/down-anchor-x8.png",
+            "references/layout-guides/down/water.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction down",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "down_lasso",
+          "role": "action-row",
+          "direction": "down",
+          "refs": [
+            "references/anchors/down-anchor-x8.png",
+            "references/layout-guides/down/lasso.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction down",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "side_hoe",
+          "role": "action-row",
+          "direction": "side",
+          "refs": [
+            "references/anchors/side-anchor-x8.png",
+            "references/layout-guides/side/hoe.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction side",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "side_water",
+          "role": "action-row",
+          "direction": "side",
+          "refs": [
+            "references/anchors/side-anchor-x8.png",
+            "references/layout-guides/side/water.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction side",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "side_lasso",
+          "role": "action-row",
+          "direction": "side",
+          "refs": [
+            "references/anchors/side-anchor-x8.png",
+            "references/layout-guides/side/lasso.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction side",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "up_hoe",
+          "role": "action-row",
+          "direction": "up",
+          "refs": [
+            "references/anchors/up-anchor-x8.png",
+            "references/layout-guides/up/hoe.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction up",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "up_water",
+          "role": "action-row",
+          "direction": "up",
+          "refs": [
+            "references/anchors/up-anchor-x8.png",
+            "references/layout-guides/up/water.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction up",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        },
+        {
+          "state": "up_lasso",
+          "role": "action-row",
+          "direction": "up",
+          "refs": [
+            "references/anchors/up-anchor-x8.png",
+            "references/layout-guides/up/lasso.png"
+          ],
+          "materialize": "python3 -m sprite_gen.cli anchor --run-dir . --direction up",
+          "note": "앵커 ref 는 파생 캐시다 — 생성 직전 위 커맨드로 큐레이션 진실에서 다시 굽는다 (`--for-state <state>` 는 붙일 경로를 그대로 출력한다)"
+        }
+      ]
+    }
+  ],
+  "mirrored_directions": [
+    {
+      "direction": "left",
+      "mirror_of": "side",
+      "note": "생성 생략 — 런타임 미러가 기본. 미러로 부족해 재생성할 때는 반대편 행(raw/side/*.png)을 timing/scale 참조로만 부착하고, 대상 방향 앵커를 새로 뽑아 identity 로 쓴다 (directional-anchor-workflow.md 좌우 게이트)"
+    },
+    {
+      "direction": "downleft",
+      "mirror_of": "downside",
+      "note": "생성 생략 — 런타임 미러가 기본. 미러로 부족해 재생성할 때는 반대편 행(raw/downside/*.png)을 timing/scale 참조로만 부착하고, 대상 방향 앵커를 새로 뽑아 identity 로 쓴다 (directional-anchor-workflow.md 좌우 게이트)"
+    },
+    {
+      "direction": "upleft",
+      "mirror_of": "upside",
+      "note": "생성 생략 — 런타임 미러가 기본. 미러로 부족해 재생성할 때는 반대편 행(raw/upside/*.png)을 timing/scale 참조로만 부착하고, 대상 방향 앵커를 새로 뽑아 identity 로 쓴다 (directional-anchor-workflow.md 좌우 게이트)"
+    }
+  ]
+}
