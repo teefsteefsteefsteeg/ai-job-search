@@ -1,0 +1,12 @@
+{
+  "states": {
+    "down_idle":   { "frames": 4, "fps": 4,  "loop": true,  "action": "subtle breathing, lantern sways slightly, one blink" },
+    "side_idle":   { "frames": 4, "fps": 4,  "loop": true,  "action": "subtle breathing, lantern sways slightly, one blink" },
+    "up_idle":     { "frames": 4, "fps": 4,  "loop": true,  "action": "subtle breathing seen from behind, lantern sways slightly" },
+    "down_walk":   { "frames": 6, "fps": 10, "loop": true,  "action": "walking toward the viewer, alternating legs, lantern swinging" },
+    "side_walk":   { "frames": 6, "fps": 10, "loop": true,  "action": "walking to the right in profile, alternating legs, lantern swinging" },
+    "up_walk":     { "frames": 6, "fps": 10, "loop": true,  "action": "walking away from the viewer, alternating legs, lantern swinging" },
+    "down_gather": { "frames": 4, "fps": 8,  "loop": false, "action": "bends down to pick something up from the ground with the free hand, then stands back up" },
+    "down_attack": { "frames": 4, "fps": 10, "loop": false, "action": "swings the lantern overhead and strikes down in front, windup, strike, follow-through, recover; no detached effects" }
+  }
+}

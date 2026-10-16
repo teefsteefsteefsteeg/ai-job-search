@@ -1,0 +1,13 @@
+# The repo root ignores *.png; game art must be tracked here.
+!*.png
+!*.gif
+
+# sprite-gen transient files
+*.sg-rwlock
+.sprite-gen.lock
+*.sg-staging/
+*.sg-backup
+
+# Rejected generation takes stay local (large, reference only)
+ArtSource/**/raw/_rejected/
+ArtSource/**/explore/

@@ -1,0 +1,612 @@
+{
+  "ok": true,
+  "engine": "component-row",
+  "engine_revision": "5ad738fff521",
+  "extract_args": {
+    "segmentation": "projection"
+  },
+  "run_dir": "/home/user/ai-job-search/island-keeper/ArtSource/characters/keeper/sprites",
+  "cell": {
+    "shape": "rect",
+    "width": 256,
+    "height": 320,
+    "safe_margin_x": 24,
+    "safe_margin_y": 30
+  },
+  "chroma_key": {
+    "name": "magenta",
+    "hex": "#FF00FF",
+    "rgb": [
+      255,
+      0,
+      255
+    ],
+    "selection": "manual"
+  },
+  "rows": [
+    {
+      "state": "down_idle",
+      "frames": 4,
+      "method": "components",
+      "files": [
+        "frames/down/idle/frame-0.png",
+        "frames/down/idle/frame-1.png",
+        "frames/down/idle/frame-2.png",
+        "frames/down/idle/frame-3.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 20020,
+          "bbox": [
+            67,
+            30,
+            184,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 20159,
+          "bbox": [
+            67,
+            30,
+            186,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 20119,
+          "bbox": [
+            66,
+            33,
+            187,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 19975,
+          "bbox": [
+            67,
+            30,
+            184,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "side_idle",
+      "frames": 4,
+      "method": "components",
+      "files": [
+        "frames/side/idle/frame-0.png",
+        "frames/side/idle/frame-1.png",
+        "frames/side/idle/frame-2.png",
+        "frames/side/idle/frame-3.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 15703,
+          "bbox": [
+            80,
+            31,
+            173,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 16361,
+          "bbox": [
+            76,
+            30,
+            180,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 16407,
+          "bbox": [
+            80,
+            31,
+            182,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 15844,
+          "bbox": [
+            80,
+            30,
+            173,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "up_idle",
+      "frames": 4,
+      "method": "components",
+      "files": [
+        "frames/up/idle/frame-0.png",
+        "frames/up/idle/frame-1.png",
+        "frames/up/idle/frame-2.png",
+        "frames/up/idle/frame-3.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 20135,
+          "bbox": [
+            69,
+            31,
+            187,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 20600,
+          "bbox": [
+            62,
+            30,
+            188,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 20127,
+          "bbox": [
+            68,
+            31,
+            187,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 20190,
+          "bbox": [
+            70,
+            31,
+            188,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "down_walk",
+      "frames": 6,
+      "method": "components",
+      "files": [
+        "frames/down/walk/frame-0.png",
+        "frames/down/walk/frame-1.png",
+        "frames/down/walk/frame-2.png",
+        "frames/down/walk/frame-3.png",
+        "frames/down/walk/frame-4.png",
+        "frames/down/walk/frame-5.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 20229,
+          "bbox": [
+            66,
+            32,
+            182,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 19187,
+          "bbox": [
+            75,
+            36,
+            186,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 20494,
+          "bbox": [
+            72,
+            30,
+            187,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 20313,
+          "bbox": [
+            70,
+            31,
+            183,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 4,
+          "nontransparent_pixels": 19708,
+          "bbox": [
+            71,
+            35,
+            183,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 5,
+          "nontransparent_pixels": 20374,
+          "bbox": [
+            72,
+            30,
+            186,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "side_walk",
+      "frames": 6,
+      "method": "components",
+      "files": [
+        "frames/side/walk/frame-0.png",
+        "frames/side/walk/frame-1.png",
+        "frames/side/walk/frame-2.png",
+        "frames/side/walk/frame-3.png",
+        "frames/side/walk/frame-4.png",
+        "frames/side/walk/frame-5.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 17407,
+          "bbox": [
+            78,
+            30,
+            180,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 17445,
+          "bbox": [
+            83,
+            30,
+            180,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 18339,
+          "bbox": [
+            76,
+            30,
+            181,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 17423,
+          "bbox": [
+            78,
+            30,
+            180,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 4,
+          "nontransparent_pixels": 17956,
+          "bbox": [
+            84,
+            30,
+            183,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 5,
+          "nontransparent_pixels": 18439,
+          "bbox": [
+            76,
+            30,
+            182,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "up_walk",
+      "frames": 6,
+      "method": "components",
+      "files": [
+        "frames/up/walk/frame-0.png",
+        "frames/up/walk/frame-1.png",
+        "frames/up/walk/frame-2.png",
+        "frames/up/walk/frame-3.png",
+        "frames/up/walk/frame-4.png",
+        "frames/up/walk/frame-5.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 19683,
+          "bbox": [
+            71,
+            30,
+            186,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 18362,
+          "bbox": [
+            77,
+            31,
+            178,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 19064,
+          "bbox": [
+            65,
+            31,
+            179,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 19408,
+          "bbox": [
+            74,
+            30,
+            189,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 4,
+          "nontransparent_pixels": 18031,
+          "bbox": [
+            78,
+            33,
+            177,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 5,
+          "nontransparent_pixels": 19385,
+          "bbox": [
+            70,
+            30,
+            185,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "down_gather",
+      "frames": 4,
+      "method": "components",
+      "files": [
+        "frames/down/gather/frame-0.png",
+        "frames/down/gather/frame-1.png",
+        "frames/down/gather/frame-2.png",
+        "frames/down/gather/frame-3.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 20227,
+          "bbox": [
+            67,
+            30,
+            185,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 20422,
+          "bbox": [
+            62,
+            64,
+            221,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 17488,
+          "bbox": [
+            59,
+            99,
+            209,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 21025,
+          "bbox": [
+            78,
+            35,
+            214,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    },
+    {
+      "state": "down_attack",
+      "frames": 4,
+      "method": "components",
+      "files": [
+        "frames/down/attack/frame-0.png",
+        "frames/down/attack/frame-1.png",
+        "frames/down/attack/frame-2.png",
+        "frames/down/attack/frame-3.png"
+      ],
+      "frame_records": [
+        {
+          "index": 0,
+          "nontransparent_pixels": 25907,
+          "bbox": [
+            65,
+            30,
+            210,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 1,
+          "nontransparent_pixels": 25492,
+          "bbox": [
+            67,
+            43,
+            241,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 2,
+          "nontransparent_pixels": 24340,
+          "bbox": [
+            59,
+            46,
+            210,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        },
+        {
+          "index": 3,
+          "nontransparent_pixels": 23383,
+          "bbox": [
+            60,
+            38,
+            183,
+            290
+          ],
+          "edge_pixels": 0,
+          "chroma_adjacent_pixels": 0
+        }
+      ],
+      "ok": true,
+      "engine_revision": "5ad738fff521"
+    }
+  ],
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "kind": "sprite-gen-request",
+  "engine": "component-row",
+  "character": {
+    "id": "keeper",
+    "description": "",
+    "base_image": "base-source.png"
+  },
+  "cell": {
+    "shape": "rect",
+    "width": 256,
+    "height": 320,
+    "safe_margin_x": 24,
+    "safe_margin_y": 30
+  },
+  "chroma_key": {
+    "name": "magenta",
+    "hex": "#FF00FF",
+    "rgb": [
+      255,
+      0,
+      255
+    ],
+    "selection": "manual"
+  },
+  "states": {
+    "down_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "subtle breathing, lantern sways slightly, one blink"
+    },
+    "side_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "subtle breathing, lantern sways slightly, one blink"
+    },
+    "up_idle": {
+      "frames": 4,
+      "fps": 4,
+      "loop": true,
+      "action": "subtle breathing seen from behind, lantern sways slightly"
+    },
+    "down_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "walking toward the viewer, alternating legs, lantern swinging"
+    },
+    "side_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "walking to the right in profile, alternating legs, lantern swinging"
+    },
+    "up_walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "action": "walking away from the viewer, alternating legs, lantern swinging"
+    },
+    "down_gather": {
+      "frames": 4,
+      "fps": 8,
+      "loop": false,
+      "action": "bends down to pick something up from the ground with the free hand, then stands back up"
+    },
+    "down_attack": {
+      "frames": 4,
+      "fps": 10,
+      "loop": false,
+      "action": "swings the lantern overhead and strikes down in front, windup, strike, follow-through, recover; no detached effects"
+    }
+  },
+  "style": "hand-drawn gothic storybook ink illustration, Don't Starve style, thick wobbly black outlines, muted sepia/teal/rust palette, cream sticker outline",
+  "directions": {
+    "set": [
+      "down",
+      "side",
+      "up"
+    ],
+    "mirror": {
+      "left": "side"
+    },
+    "anchor_suffix": "idle"
+  },
+  "layout": "taxonomy/v1",
+  "fit": {
+    "align_y": "bottom"
+  },
+  "chroma": {
+    "mode": "rgb",
+    "unmix_reach": 4,
+    "spill_max_fraction": 0.005
+  }
+}
