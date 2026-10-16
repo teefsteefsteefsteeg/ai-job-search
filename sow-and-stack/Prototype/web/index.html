@@ -1,0 +1,527 @@
+<title>Sow &amp; Stack Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;700&display=swap">
+<style>
+/* Layout: full-height diorama canvas; a slim status bar on top, piece tray + actions docked at the bottom, rules card top-right */
+:root {
+  --sky1: #f6dcc4;
+  --sky2: #cfe3e6;
+  --ink: #4a3426;
+  --card: #fffaf0;
+  --edge: #e3cdb0;
+  --leaf: #6aa84f;
+  --terra: #d9774b;
+  --gold: #f2b63d;
+  --display: "Fredoka", "Trebuchet MS", sans-serif;
+  --body: "Nunito", "Segoe UI", sans-serif;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; color: var(--ink); font-family: var(--body); font-size: 15px;
+  background: linear-gradient(180deg, var(--sky1), var(--sky2));
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-block: 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;
+}
+.top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 1.5rem; margin: 0 8px 0 0; }
+.pill { font-family: var(--display); background: var(--card); border: 2px solid var(--edge); border-radius: 999px; padding: 3px 12px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 0 var(--edge); }
+.pill b { color: var(--terra); }
+.pill.goal.ok b { color: var(--leaf); }
+.stage { position: relative; flex: 1; min-height: 340px; border-radius: 18px; overflow: hidden; }
+canvas#gl { display: block; width: 100%; height: 100%; touch-action: none; }
+.rules { position: absolute; top: 10px; right: 10px; width: min(260px, 46%); background: rgba(255,250,240,.92); border: 2px solid var(--edge); border-radius: 14px; padding: 8px 12px; font-size: .85rem; line-height: 1.35; }
+.rules h2 { font-family: var(--display); font-size: 1rem; margin: 0 0 4px; font-weight: 600; }
+.rules ul { margin: 0; padding-left: 16px; }
+.rules summary { font-family: var(--display); cursor: pointer; }
+.dock { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; align-items: flex-end; gap: 10px; flex-wrap: wrap; padding: 0 10px; pointer-events: none; }
+.tray { display: flex; gap: 8px; background: rgba(255,250,240,.94); border: 2px solid var(--edge); border-radius: 16px; padding: 8px; pointer-events: auto; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+.card { width: 82px; min-height: 86px; border: 2px solid var(--edge); border-radius: 12px; background: #fff; cursor: pointer; padding: 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--display); font-size: .8rem; color: var(--ink); }
+.card canvas { width: 54px; height: 54px; }
+.card.on { border-color: var(--terra); box-shadow: 0 0 0 3px rgba(217,119,75,.25); }
+.card.off { opacity: .45; cursor: not-allowed; }
+.card small { color: #8a7060; font-family: var(--body); }
+.actions { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; }
+button.act { font-family: var(--display); font-size: .95rem; color: var(--ink); background: var(--card); border: 2px solid var(--edge); border-radius: 12px; padding: 8px 12px; cursor: pointer; box-shadow: 0 2px 0 var(--edge); }
+button.act.main { background: var(--gold); border-color: #d99a22; box-shadow: 0 2px 0 #c0861a; }
+button:focus-visible, .card:focus-visible { outline: 3px solid var(--terra); outline-offset: 2px; }
+.float { position: absolute; transform: translate(-50%, -100%); font-family: var(--display); font-weight: 600; font-size: 1.15rem; pointer-events: none; text-shadow: 0 2px 0 #fff, 0 0 6px #fff; white-space: nowrap; }
+.toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--card); border: 2px solid var(--edge); border-radius: 12px; padding: 6px 14px; font-family: var(--display); pointer-events: none; text-align: center; max-width: 70%; }
+@media (max-width: 640px) { .rules { position: static; width: auto; margin: 8px; } .stage { display: flex; flex-direction: column; } canvas#gl { flex: 1; min-height: 260px; } .dock { position: static; padding: 8px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="top">
+  <h1>Sow &amp; Stack</h1>
+  <span class="pill" id="dayPill">Xuân · Ngày 1</span>
+  <span class="pill goal" id="goalPill">Điểm <b id="score">0</b> / <span id="target">20</span></span>
+  <span class="pill">Vật liệu <b id="mat">0</b></span>
+  <span class="pill" id="modePill">Chế độ: Vườn</span>
+</div>
+
+<div class="stage" id="stage">
+  <canvas id="gl" aria-label="Hòn đảo diorama: ruộng 7x7 và nền nhà 4x4"></canvas>
+  <details class="rules" open>
+    <summary>Luật tính điểm</summary>
+    <ul id="rulesList">
+      <li>Mỗi ô cây có điểm gốc (xem trên thẻ).</li>
+      <li><b>Đậu</b>: +1 cho mỗi ô cây khác nằm sát cạnh.</li>
+      <li><b>Hướng dương</b> che bóng ô ngay phía sau nó: <b>xà lách</b> trong bóng +2, cây khác −1.</li>
+      <li>Ô sát <b>ao</b>: +1. Đá thì không trồng được.</li>
+      <li>Xếp hết mảnh hoặc bấm <b>Thu hoạch</b> để sang ngày.</li>
+    </ul>
+  </details>
+  <div class="toast" id="toast">Chọn một mảnh ở khay, rê lên ruộng, nhấp để đặt. R để xoay.</div>
+  <div class="dock">
+    <div class="tray" id="tray"></div>
+    <div class="actions">
+      <button class="act" id="rotBtn" type="button">Xoay (R)</button>
+      <button class="act" id="undoBtn" type="button">Hoàn tác (Z)</button>
+      <button class="act main" id="harvestBtn" type="button">Thu hoạch</button>
+      <button class="act" id="modeBtn" type="button">Xây nhà</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ================= data =================
+const CROPS = {
+  carrot:    { name: 'Cà rốt',      base: 2, color: 0xe8843a, cells: [[0,0],[0,1],[0,2],[1,2]] },
+  corn:      { name: 'Ngô',         base: 2, color: 0xf2c94c, cells: [[0,0],[0,1],[0,2]] },
+  pumpkin:   { name: 'Bí đỏ',       base: 3, color: 0xe0702e, cells: [[0,0],[1,0],[0,1],[1,1]] },
+  beans:     { name: 'Đậu',         base: 1, color: 0x6fb04a, cells: [[0,0],[1,0]] },
+  sunflower: { name: 'Hướng dương', base: 1, color: 0xf5c518, cells: [[0,0],[1,0],[2,0],[1,1]], lock: 'porch' },
+  lettuce:   { name: 'Xà lách',     base: 2, color: 0x8fd16a, cells: [[0,0],[1,0],[1,1]], lock: 'kitchen' },
+};
+const ROOMS = {
+  kitchen:    { name: 'Bếp',      cost: 25, color: 0xf6e3c2, roof: 0xd9774b, cells: [[0,0],[1,0]], unlock: 'Mở khoá Xà lách' },
+  bedroom:    { name: 'Phòng ngủ', cost: 35, color: 0xe9eef5, roof: 0x7a9cc6, cells: [[0,0],[1,0],[0,1],[1,1]], unlock: '+3 điểm mục tiêu dễ hơn mỗi ngày' },
+  porch:      { name: 'Hiên',     cost: 15, color: 0xe2c79a, roof: 0x9a6a3f, cells: [[0,0],[0,1]], unlock: 'Mở khoá Hướng dương' },
+  storage:    { name: 'Kho',      cost: 20, color: 0xd9c3a3, roof: 0x8a5a3b, cells: [[0,0]], unlock: 'Khay có thêm 1 ô' },
+  greenhouse: { name: 'Nhà kính', cost: 40, color: 0xcfeef2, roof: 0x9fd8de, cells: [[0,0],[1,0],[2,0]], unlock: 'Mỗi ngày +1 mảnh bí đỏ' },
+};
+const FIELD = 7, HOUSE = 4;
+const HOUSE_X0 = FIELD + 1;   // house plot columns start after a 1-cell lane
+const SEASONS = ['Xuân', 'Hạ', 'Thu', 'Đông'];
+
+// ================= state =================
+const S = {
+  day: 1, mode: 'farm', materials: 0, score: 0, target: 20,
+  board: [],            // FIELD x FIELD: null | {type:'rock'|'pond'} | {type:'crop', crop, pid}
+  pieces: [],           // placed crop pieces {pid, crop, cells:[[x,z]], meshes}
+  bag: [], tray: [], sel: 0, rot: 0,
+  rooms: [], hboard: [], built: new Set(), roomSel: null, roomRot: 0,
+  history: [],
+};
+let PID = 1;
+function rngSeed(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+let R = rngSeed(Date.now() % 100000 + 7);
+
+function rotCells(cells, r) {
+  let c = cells.map(([x, z]) => [x, z]);
+  for (let i = 0; i < r; i++) c = c.map(([x, z]) => [-z, x]);
+  const mx = Math.min(...c.map(p => p[0])), mz = Math.min(...c.map(p => p[1]));
+  return c.map(([x, z]) => [x - mx, z - mz]);
+}
+function unlockedCrops() { return Object.keys(CROPS).filter(k => !CROPS[k].lock || S.built.has(CROPS[k].lock)); }
+function traySize() { return 3 + (S.built.has('storage') ? 1 : 0); }
+
+// ================= three.js scene =================
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(22, 1, .1, 200);
+const CENTER = new THREE.Vector3((FIELD + 1 + HOUSE) / 2 - .5, 0, FIELD / 2 - .5);
+let camAngle = Math.PI / 4;
+function placeCamera() {
+  const d = 31;
+  camera.position.set(CENTER.x + Math.sin(camAngle) * d * .62, 22, CENTER.z + Math.cos(camAngle) * d * .62);
+  camera.lookAt(CENTER.x, -.6, CENTER.z);
+}
+placeCamera();
+
+scene.add(new THREE.HemisphereLight(0xe8f3ff, 0x9a7a55, .55));
+const sun = new THREE.DirectionalLight(0xffe6c4, .95);
+sun.position.set(CENTER.x - 8, 16, CENTER.z + 10); sun.target.position.copy(CENTER);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 50 });
+sun.shadow.bias = -.0008; sun.shadow.radius = 4;
+scene.add(sun, sun.target);
+
+const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .85, metalness: 0, flatShading: true });
+const MAT = {
+  grass: M(0x8cc063), grass2: M(0x7db355), dirt: M(0x9b6b43), dirtDark: M(0x7a5233), soil: M(0x6e4a2e),
+  rock: M(0xa3a09a), water: new THREE.MeshStandardMaterial({ color: 0x4aa3c8, roughness: .15, transparent: true, opacity: .9 }),
+  stem: M(0x4f8f3a), leaf: M(0x6fb04a), plot: M(0xe8d7b8), lane: M(0xd8c29a), cream: M(0xfff3dc), wood: M(0x9a6a3f), glass: M(0xbfe6f0),
+};
+function mesh(geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; }
+
+// island
+const island = new THREE.Group(); scene.add(island);
+const W = FIELD + 1 + HOUSE;
+island.add(mesh(new THREE.BoxGeometry(W + .6, .5, FIELD + .6), MAT.grass, W / 2 - .5, -.25, FIELD / 2 - .5));
+island.add(mesh(new THREE.BoxGeometry(W + .4, .9, FIELD + .4), MAT.dirt, W / 2 - .5, -.95, FIELD / 2 - .5));
+island.add(mesh(new THREE.BoxGeometry(W - .6, .9, FIELD - .6), MAT.dirtDark, W / 2 - .5, -1.8, FIELD / 2 - .5));
+const bottom = mesh(new THREE.ConeGeometry(W * .34, 2, 7), M(0x6b4a30), W / 2 - .5, -3.2, FIELD / 2 - .5); bottom.rotation.x = Math.PI; island.add(bottom);
+// lane between field and house plot
+for (let z = 0; z < FIELD; z++) island.add(mesh(new THREE.BoxGeometry(.96, .06, .96), MAT.lane, FIELD, .03, z));
+// house plot
+for (let x = 0; x < HOUSE; x++) for (let z = 0; z < HOUSE; z++) island.add(mesh(new THREE.BoxGeometry(.96, .08, .96), MAT.plot, HOUSE_X0 + x, .04, z + 1.5));
+// trees around the edge for diorama charm
+function tree(x, z, s = 1) {
+  const g = new THREE.Group();
+  g.add(mesh(new THREE.CylinderGeometry(.08 * s, .12 * s, .7 * s, 6), MAT.wood, 0, .35 * s, 0));
+  g.add(mesh(new THREE.IcosahedronGeometry(.42 * s, 0), M(0x5e9e45), 0, .95 * s, 0));
+  g.add(mesh(new THREE.IcosahedronGeometry(.3 * s, 0), M(0x76b456), .12 * s, 1.25 * s, .05 * s));
+  g.position.set(x, 0, z); island.add(g);
+}
+tree(-0.1 + W - 1.2, FIELD - .9, 1.1); tree(W - .9, .2, .9); tree(HOUSE_X0 + .2, FIELD - .6, .8);
+
+// field tile meshes
+const tileGroup = new THREE.Group(); scene.add(tileGroup);
+const tiles = [];
+for (let x = 0; x < FIELD; x++) { tiles[x] = []; for (let z = 0; z < FIELD; z++) {
+  const t = mesh(new THREE.BoxGeometry(.94, .12, .94), (x + z) % 2 ? MAT.grass : MAT.grass2, x, .02, z); tileGroup.add(t); tiles[x][z] = t;
+} }
+const fieldDeco = new THREE.Group(); scene.add(fieldDeco);
+const cropGroup = new THREE.Group(); scene.add(cropGroup);
+const roomGroup = new THREE.Group(); scene.add(roomGroup);
+const ghostGroup = new THREE.Group(); scene.add(ghostGroup);
+
+// ---------- crop models (per cell) ----------
+function cropCell(type) {
+  const g = new THREE.Group(), c = CROPS[type];
+  if (type === 'carrot') {
+    for (const [dx, dz] of [[-.18, -.15], [.18, .12], [-.1, .2], [.2, -.2]]) {
+      g.add(mesh(new THREE.ConeGeometry(.07, .18, 5), M(c.color), dx, .1, dz));
+      g.add(mesh(new THREE.ConeGeometry(.06, .26, 4), MAT.leaf, dx, .3, dz));
+    }
+  } else if (type === 'corn') {
+    for (const [dx, dz] of [[-.18, 0], [.18, .05]]) {
+      g.add(mesh(new THREE.CylinderGeometry(.04, .05, .9, 5), MAT.stem, dx, .45, dz));
+      g.add(mesh(new THREE.CylinderGeometry(.07, .06, .3, 6), M(c.color), dx + .08, .62, dz));
+      const lf = mesh(new THREE.ConeGeometry(.05, .45, 3), MAT.leaf, dx - .08, .5, dz); lf.rotation.z = .6; g.add(lf);
+    }
+  } else if (type === 'pumpkin') {
+    const p = mesh(new THREE.SphereGeometry(.3, 8, 6), M(c.color), 0, .22, 0); p.scale.y = .7; g.add(p);
+    g.add(mesh(new THREE.CylinderGeometry(.03, .04, .12, 5), MAT.stem, 0, .44, 0));
+    g.add(mesh(new THREE.ConeGeometry(.12, .05, 5), MAT.leaf, .2, .1, .2));
+  } else if (type === 'beans') {
+    for (const dx of [-.2, .2]) {
+      g.add(mesh(new THREE.CylinderGeometry(.02, .02, .7, 4), MAT.wood, dx, .35, 0));
+      for (let k = 0; k < 3; k++) g.add(mesh(new THREE.IcosahedronGeometry(.09, 0), MAT.leaf, dx + (k % 2 ? .06 : -.06), .2 + k * .18, .03));
+    }
+  } else if (type === 'sunflower') {
+    g.add(mesh(new THREE.CylinderGeometry(.04, .05, 1.1, 5), MAT.stem, 0, .55, 0));
+    const head = new THREE.Group(); head.position.set(0, 1.12, .05); head.rotation.x = -.5;
+    head.add(mesh(new THREE.CylinderGeometry(.24, .24, .05, 10), M(c.color)));
+    head.add(mesh(new THREE.CylinderGeometry(.12, .12, .07, 8), M(0x6b4423), 0, .02, 0));
+    g.add(head); g.add(mesh(new THREE.ConeGeometry(.08, .3, 3), MAT.leaf, .12, .45, 0));
+  } else if (type === 'lettuce') {
+    for (const [dx, dz] of [[-.16, -.1], [.16, .12], [0, 0]]) { const l = mesh(new THREE.IcosahedronGeometry(.17, 0), M(c.color), dx, .14, dz); l.scale.y = .7; g.add(l); }
+  }
+  return g;
+}
+
+// ---------- room model ----------
+function roomModel(key, cells) {
+  const r = ROOMS[key], g = new THREE.Group();
+  const xs = cells.map(c => c[0]), zs = cells.map(c => c[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+  const w = x1 - x0 + 1, d = z1 - z0 + 1, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, h = .85;
+  const wallMat = key === 'greenhouse' ? new THREE.MeshStandardMaterial({ color: r.color, roughness: .1, transparent: true, opacity: .55 }) : M(r.color);
+  g.add(mesh(new THREE.BoxGeometry(w - .08, h, d - .08), wallMat, cx, h / 2 + .08, cz));
+  // gable roof: a triangle extruded along the longer side, apex up
+  const along = w >= d, len = (along ? w : d) + .14, span = (along ? d : w) + .18, rh = .45;
+  const tri = new THREE.Shape(); tri.moveTo(-span / 2, 0); tri.lineTo(span / 2, 0); tri.lineTo(0, rh); tri.lineTo(-span / 2, 0);
+  const rg = new THREE.ExtrudeGeometry(tri, { depth: len, bevelEnabled: false }); rg.translate(0, 0, -len / 2);
+  const roof = mesh(rg, M(r.roof), cx, h + .08, cz); if (along) roof.rotation.y = Math.PI / 2; g.add(roof);
+  // door + windows on the front (+z) face
+  g.add(mesh(new THREE.BoxGeometry(.22, .42, .04), MAT.wood, cx, .3, z1 + .47));
+  for (let i = 0; i < w; i++) if (w > 1 || true) g.add(mesh(new THREE.BoxGeometry(.2, .2, .04), MAT.glass, x0 + i + (w > 1 ? .2 : .28), .58, z1 + .47));
+  if (key === 'kitchen') g.add(mesh(new THREE.BoxGeometry(.16, .5, .16), M(0x8a5a3b), x0 + .2, h + .45, z0 + .2));
+  return g;
+}
+
+// ================= board setup =================
+function newDay() {
+  S.board = Array.from({ length: FIELD }, () => Array(FIELD).fill(null));
+  S.pieces = []; S.history = []; S.score = 0;
+  cropGroup.clear(); fieldDeco.clear();
+  for (let x = 0; x < FIELD; x++) for (let z = 0; z < FIELD; z++) { tiles[x][z].material = (x + z) % 2 ? MAT.grass : MAT.grass2; tiles[x][z].visible = true; }
+  // rocks and a small pond
+  const px = 1 + Math.floor(R() * (FIELD - 3)), pz = 1 + Math.floor(R() * (FIELD - 3));
+  const pond = [[px, pz], [px + 1, pz]].concat(R() < .5 ? [[px, pz + 1]] : []);
+  for (const [x, z] of pond) { S.board[x][z] = { type: 'pond' }; tiles[x][z].visible = false; const w = mesh(new THREE.BoxGeometry(1, .1, 1), MAT.water, x, .0, z); w.castShadow = false; fieldDeco.add(w); }
+  let rocks = 0;
+  while (rocks < 2 + Math.min(2, Math.floor(S.day / 3))) {
+    const x = Math.floor(R() * FIELD), z = Math.floor(R() * FIELD);
+    if (S.board[x][z]) continue;
+    S.board[x][z] = { type: 'rock' }; rocks++;
+    const r = mesh(new THREE.DodecahedronGeometry(.3, 0), MAT.rock, x, .2, z); r.rotation.set(R(), R(), R()); r.scale.y = .7; fieldDeco.add(r);
+  }
+  // bag of pieces
+  const pool = unlockedCrops();
+  S.bag = [];
+  const n = 8 + (S.built.has('greenhouse') ? 1 : 0);
+  if (S.built.has('greenhouse')) S.bag.push('pumpkin');
+  while (S.bag.length < n) S.bag.push(pool[Math.floor(R() * pool.length)]);
+  S.tray = []; refillTray(); S.sel = 0; S.rot = 0;
+  S.target = 20 + (S.day - 1) * 6 - (S.built.has('bedroom') ? 3 : 0);
+  updateHud(); renderTray();
+}
+function refillTray() { while (S.tray.length < traySize() && S.bag.length) S.tray.push(S.bag.shift()); }
+
+// ================= scoring =================
+function scoreBoard(board) {
+  let total = 0;
+  const shaded = new Set();
+  for (let x = 0; x < FIELD; x++) for (let z = 0; z < FIELD; z++) {
+    const b = board[x][z]; if (b && b.type === 'crop' && b.crop === 'sunflower' && z - 1 >= 0) shaded.add(x + ',' + (z - 1));
+  }
+  const N = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (let x = 0; x < FIELD; x++) for (let z = 0; z < FIELD; z++) {
+    const b = board[x][z]; if (!b || b.type !== 'crop') continue;
+    let s = CROPS[b.crop].base;
+    for (const [dx, dz] of N) {
+      const n = board[x + dx] && board[x + dx][z + dz];
+      if (!n) continue;
+      if (n.type === 'pond') s += 1;
+      if (n.type === 'crop' && n.crop === 'beans' && b.crop !== 'beans') s += 1;
+    }
+    if (shaded.has(x + ',' + z) && b.crop !== 'sunflower') s += b.crop === 'lettuce' ? 2 : -1;
+    total += s;
+  }
+  return total;
+}
+function canPlace(cells, ox, oz) {
+  return cells.every(([x, z]) => { const X = ox + x, Z = oz + z; return X >= 0 && Z >= 0 && X < FIELD && Z < FIELD && !S.board[X][Z]; });
+}
+function withPiece(crop, cells, ox, oz) {
+  const b = S.board.map(col => col.slice());
+  for (const [x, z] of cells) b[ox + x][oz + z] = { type: 'crop', crop, pid: -1 };
+  return b;
+}
+
+// ================= house =================
+S.hboard = Array.from({ length: HOUSE }, () => Array(HOUSE).fill(null));
+function canPlaceRoom(cells, ox, oz) { return cells.every(([x, z]) => { const X = ox + x, Z = oz + z; return X >= 0 && Z >= 0 && X < HOUSE && Z < HOUSE && !S.hboard[X][Z]; }); }
+function roomStars(key, cells, ox, oz) {
+  let st = 1;
+  if (key === 'kitchen' && cells.some(([x]) => ox + x === 0)) st++;            // kitchen next to the garden lane
+  if (key === 'bedroom' && cells.some(([, z]) => oz + z === 0)) st++;          // bedroom on the quiet back row
+  if (key === 'porch' && cells.some(([, z]) => oz + z === HOUSE - 1)) st++;    // porch at the front
+  return st;
+}
+
+// ================= interaction =================
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -.08);
+let hover = null, touchArmed = null;
+function cellFromEvent(e) {
+  const r = canvas.getBoundingClientRect();
+  mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera); const p = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(plane, p)) return null;
+  if (S.mode === 'farm') return { x: Math.round(p.x), z: Math.round(p.z) };
+  return { x: Math.round(p.x) - HOUSE_X0, z: Math.round(p.z - 1.5) };
+}
+function curCells() {
+  if (S.mode === 'farm') { const t = S.tray[S.sel]; return t ? rotCells(CROPS[t].cells, S.rot) : null; }
+  return S.roomSel ? rotCells(ROOMS[S.roomSel].cells, S.roomRot) : null;
+}
+function anchor(c, cells) {
+  // centre the piece under the cursor
+  const mx = Math.max(...cells.map(p => p[0])), mz = Math.max(...cells.map(p => p[1]));
+  return { ox: c.x - Math.floor(mx / 2), oz: c.z - Math.floor(mz / 2) };
+}
+const ghostMatOk = new THREE.MeshStandardMaterial({ color: 0x9be37a, transparent: true, opacity: .55 });
+const ghostMatBad = new THREE.MeshStandardMaterial({ color: 0xe8664f, transparent: true, opacity: .5 });
+const floatEl = document.createElement('div'); floatEl.className = 'float'; document.getElementById('stage').appendChild(floatEl); floatEl.hidden = true;
+
+function updateGhost() {
+  ghostGroup.clear(); floatEl.hidden = true;
+  const cells = curCells(); if (!hover || !cells) return;
+  const { ox, oz } = anchor(hover, cells);
+  if (S.mode === 'farm') {
+    const ok = canPlace(cells, ox, oz);
+    for (const [x, z] of cells) { const g = mesh(new THREE.BoxGeometry(.9, .2, .9), ok ? ghostMatOk : ghostMatBad, ox + x, .14, oz + z); g.castShadow = false; ghostGroup.add(g); }
+    if (ok) {
+      const t = S.tray[S.sel];
+      for (const [x, z] of cells) { const m = cropCell(t); m.position.set(ox + x, .08, oz + z); m.scale.setScalar(1.35); m.traverse(o => { if (o.material) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = .6; } }); ghostGroup.add(m); }
+      const delta = scoreBoard(withPiece(t, cells, ox, oz)) - scoreBoard(S.board);
+      placeFloat(ox + cells[0][0], oz + cells[0][1], (delta >= 0 ? '+' : '') + delta, delta >= 0 ? '#3f8a2a' : '#c2452d');
+    }
+  } else {
+    const ok = canPlaceRoom(cells, ox, oz), cost = ROOMS[S.roomSel].cost, rich = S.materials >= cost;
+    for (const [x, z] of cells) ghostGroup.add(mesh(new THREE.BoxGeometry(.9, .9, .9), ok && rich ? ghostMatOk : ghostMatBad, HOUSE_X0 + ox + x, .5, oz + z + 1.5));
+    if (ok) placeFloat(HOUSE_X0 + ox + cells[0][0], oz + cells[0][1] + 1.5, rich ? '★'.repeat(roomStars(S.roomSel, cells, ox, oz)) + ` −${cost}` : `Thiếu vật liệu (${cost})`, rich ? '#b5781a' : '#c2452d');
+  }
+}
+function placeFloat(x, z, text, color) {
+  const v = new THREE.Vector3(x, 1.2, z).project(camera), r = canvas.getBoundingClientRect(), sr = document.getElementById('stage').getBoundingClientRect();
+  floatEl.style.left = ((v.x + 1) / 2 * r.width + r.left - sr.left) + 'px';
+  floatEl.style.top = ((1 - v.y) / 2 * r.height + r.top - sr.top) + 'px';
+  floatEl.textContent = text; floatEl.style.color = color; floatEl.hidden = false;
+}
+
+const pops = [];
+function placeCurrent() {
+  const cells = curCells(); if (!hover || !cells) return;
+  const { ox, oz } = anchor(hover, cells);
+  if (S.mode === 'farm') {
+    if (!canPlace(cells, ox, oz)) { toast('Không đặt được ở đây'); return; }
+    const crop = S.tray[S.sel], pid = PID++, group = new THREE.Group();
+    for (const [x, z] of cells) {
+      S.board[ox + x][oz + z] = { type: 'crop', crop, pid };
+      tiles[ox + x][oz + z].material = MAT.soil;
+      const m = cropCell(crop); m.position.set(ox + x, .08, oz + z); m.scale.setScalar(.01); m.userData.full = 1.35; group.add(m); pops.push({ m, t: 0 });
+    }
+    cropGroup.add(group);
+    S.pieces.push({ pid, crop, cells: cells.map(([x, z]) => [ox + x, oz + z]), group });
+    S.history.push({ pid, crop, traySlot: S.sel });
+    S.tray.splice(S.sel, 1); refillTray(); S.sel = Math.min(S.sel, Math.max(0, S.tray.length - 1));
+    S.score = scoreBoard(S.board); updateHud(); renderTray();
+    if (!S.tray.length) toast('Hết mảnh rồi, bấm Thu hoạch!');
+    else if (!anyFits()) toast('Không còn chỗ cho các mảnh trong khay. Bấm Thu hoạch.');
+  } else {
+    const key = S.roomSel, cost = ROOMS[key].cost;
+    if (!canPlaceRoom(cells, ox, oz)) { toast('Phòng không vừa chỗ này'); return; }
+    if (S.materials < cost) { toast(`Cần ${cost} vật liệu, đang có ${S.materials}`); return; }
+    S.materials -= cost;
+    const abs = cells.map(([x, z]) => [ox + x, oz + z]);
+    for (const [x, z] of abs) S.hboard[x][z] = key;
+    const m = roomModel(key, abs.map(([x, z]) => [HOUSE_X0 + x, z + 1.5])); m.scale.setScalar(.01); roomGroup.add(m); pops.push({ m, t: 0 });
+    const stars = roomStars(key, cells, ox, oz);
+    S.built.add(key); S.rooms.push({ key, stars });
+    toast(`Xây xong ${ROOMS[key].name} ${'★'.repeat(stars)} · ${ROOMS[key].unlock}`, 3.5);
+    S.roomSel = null; updateHud(); renderTray();
+  }
+  updateGhost();
+}
+function anyFits() {
+  for (const t of S.tray) for (let r = 0; r < 4; r++) { const c = rotCells(CROPS[t].cells, r); for (let x = 0; x < FIELD; x++) for (let z = 0; z < FIELD; z++) if (canPlace(c, x, z)) return true; }
+  return false;
+}
+function undo() {
+  if (S.mode !== 'farm') return;
+  const h = S.history.pop(); if (!h) { toast('Chưa có gì để hoàn tác'); return; }
+  const i = S.pieces.findIndex(p => p.pid === h.pid), p = S.pieces[i];
+  for (const [x, z] of p.cells) { S.board[x][z] = null; tiles[x][z].material = (x + z) % 2 ? MAT.grass : MAT.grass2; }
+  cropGroup.remove(p.group); S.pieces.splice(i, 1);
+  // put the piece back at the front of the tray, push overflow back into the bag
+  S.tray.splice(h.traySlot, 0, h.crop); while (S.tray.length > traySize()) S.bag.unshift(S.tray.pop());
+  S.sel = h.traySlot; S.score = scoreBoard(S.board); updateHud(); renderTray(); updateGhost();
+}
+function harvest() {
+  if (S.mode !== 'farm') return;
+  const ok = S.score >= S.target;
+  if (ok) {
+    S.materials += S.score; toast(`Thu hoạch ${S.score} điểm → +${S.score} vật liệu. Bấm "Xây nhà" để dùng.`, 3.5);
+    harvestAnim(() => { S.day++; newDay(); });
+  } else {
+    toast(`Chưa đạt mục tiêu (${S.score}/${S.target}). Làm lại ngày này.`, 3);
+    harvestAnim(() => newDay());
+  }
+}
+const flying = [];
+function harvestAnim(done) {
+  cropGroup.children.forEach((g, i) => flying.push({ g, t: -i * .05 }));
+  setTimeout(done, 900);
+}
+function rotate() { if (S.mode === 'farm') S.rot = (S.rot + 1) % 4; else S.roomRot = (S.roomRot + 1) % 4; updateGhost(); }
+function setMode(m) {
+  S.mode = m; document.getElementById('modeBtn').textContent = m === 'farm' ? 'Xây nhà' : 'Về vườn';
+  document.getElementById('modePill').textContent = 'Chế độ: ' + (m === 'farm' ? 'Vườn' : 'Xây nhà');
+  document.getElementById('harvestBtn').hidden = document.getElementById('undoBtn').hidden = m !== 'farm';
+  if (m === 'house') toast('Chọn một phòng, đặt lên nền nhà màu kem bên phải.', 3);
+  renderTray(); updateGhost();
+}
+
+canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { hover = cellFromEvent(e); updateGhost(); } });
+canvas.addEventListener('pointerleave', () => { hover = null; updateGhost(); });
+canvas.addEventListener('contextmenu', e => { e.preventDefault(); rotate(); });
+canvas.addEventListener('pointerdown', e => {
+  if (e.button === 2) return;
+  const c = cellFromEvent(e);
+  if (e.pointerType !== 'mouse') {             // touch: first tap previews, second tap on the same cell places
+    if (touchArmed && c && touchArmed.x === c.x && touchArmed.z === c.z) { hover = c; placeCurrent(); touchArmed = null; }
+    else { hover = c; touchArmed = c; updateGhost(); }
+    return;
+  }
+  hover = c; placeCurrent();
+});
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'r') rotate(); else if (k === 'z') undo(); else if (k === 'h') harvest();
+  else if (k === 'q') { camAngle -= Math.PI / 2; placeCamera(); updateGhost(); }
+  else if (k === 'e') { camAngle += Math.PI / 2; placeCamera(); updateGhost(); }
+  else if (/^[1-4]$/.test(k)) { const i = +k - 1; if (S.mode === 'farm' && S.tray[i]) { S.sel = i; renderTray(); updateGhost(); } }
+});
+document.getElementById('rotBtn').onclick = rotate;
+document.getElementById('undoBtn').onclick = undo;
+document.getElementById('harvestBtn').onclick = harvest;
+document.getElementById('modeBtn').onclick = () => setMode(S.mode === 'farm' ? 'house' : 'farm');
+
+// ================= UI =================
+const $ = id => document.getElementById(id);
+let toastT = 0; const toastEl = $('toast');
+function toast(m, s = 2.4) { toastEl.textContent = m; toastEl.hidden = false; toastT = s; }
+function updateHud() {
+  $('dayPill').textContent = `${SEASONS[Math.floor((S.day - 1) / 4) % 4]} · Ngày ${S.day}`;
+  $('score').textContent = S.score; $('target').textContent = S.target; $('mat').textContent = S.materials;
+  $('goalPill').classList.toggle('ok', S.score >= S.target);
+}
+function shapeIcon(cells, color) {
+  const c = document.createElement('canvas'); c.width = c.height = 54; const g = c.getContext('2d');
+  const mx = Math.max(...cells.map(p => p[0])) + 1, mz = Math.max(...cells.map(p => p[1])) + 1, s = Math.floor(46 / Math.max(mx, mz, 2));
+  const ox = (54 - mx * s) / 2, oz = (54 - mz * s) / 2;
+  for (const [x, z] of cells) { g.fillStyle = '#' + color.toString(16).padStart(6, '0'); g.fillRect(ox + x * s + 1, oz + z * s + 1, s - 2, s - 2); g.strokeStyle = 'rgba(74,52,38,.5)'; g.strokeRect(ox + x * s + 1.5, oz + z * s + 1.5, s - 3, s - 3); }
+  return c;
+}
+function renderTray() {
+  const tray = $('tray'); tray.innerHTML = '';
+  if (S.mode === 'farm') {
+    S.tray.forEach((t, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'card' + (i === S.sel ? ' on' : '');
+      b.appendChild(shapeIcon(rotCells(CROPS[t].cells, i === S.sel ? S.rot : 0), CROPS[t].color));
+      b.insertAdjacentHTML('beforeend', `<span>${CROPS[t].name}</span><small>${CROPS[t].base} đ/ô</small>`);
+      b.onclick = () => { S.sel = i; renderTray(); updateGhost(); }; tray.appendChild(b);
+    });
+    const left = document.createElement('span'); left.className = 'card'; left.style.cursor = 'default';
+    left.innerHTML = `<span style="font-size:1.6rem;margin-top:10px">${S.bag.length}</span><small>còn trong túi</small>`; tray.appendChild(left);
+  } else {
+    for (const [k, r] of Object.entries(ROOMS)) {
+      const built = S.built.has(k), b = document.createElement('button'); b.type = 'button';
+      b.className = 'card' + (S.roomSel === k ? ' on' : '') + (built ? ' off' : '');
+      b.appendChild(shapeIcon(rotCells(r.cells, S.roomSel === k ? S.roomRot : 0), r.roof));
+      b.insertAdjacentHTML('beforeend', `<span>${r.name}</span><small>${built ? 'đã xây' : r.cost + ' vật liệu'}</small>`);
+      b.title = r.unlock; b.onclick = () => { if (built) return; S.roomSel = k; renderTray(); updateGhost(); }; tray.appendChild(b);
+    }
+  }
+}
+
+// ================= loop =================
+function resize() {
+  const r = canvas.getBoundingClientRect(); renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / r.height;
+  camera.fov = r.width / r.height < 1 ? 34 : 22; camera.updateProjectionMatrix(); updateGhost();
+}
+new ResizeObserver(resize).observe(canvas);
+let last = performance.now();
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(now) {
+  const dt = Math.min(.05, Math.max(0, (now - last) / 1000)); last = now;
+  for (let i = pops.length - 1; i >= 0; i--) { const p = pops[i]; p.t += dt * 4; const k = Math.min(1, p.t); const s = reduce ? 1 : k < 1 ? 1 + Math.sin(k * Math.PI) * .25 * (1 - k) + (k - 1) * 0 : 1; const full = p.m.userData.full || 1; p.m.scale.setScalar(Math.max(.01, (reduce ? 1 : k * s) * full)); if (p.t >= 1) { p.m.scale.setScalar(full); pops.splice(i, 1); } }
+  for (let i = flying.length - 1; i >= 0; i--) { const f = flying[i]; f.t += dt; if (f.t > 0) { f.g.position.y += dt * 6; f.g.traverse(o => { if (o.isMesh) o.scale.multiplyScalar(.96); }); } if (f.t > .9) flying.splice(i, 1); }
+  if (!reduce) island.position.y = Math.sin(now / 1600) * .05;
+  tileGroup.position.y = cropGroup.position.y = fieldDeco.position.y = roomGroup.position.y = ghostGroup.position.y = island.position.y;
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) toastEl.hidden = true; }
+  renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+newDay(); setMode('farm'); toast('Chọn một mảnh ở khay, rê lên ruộng, nhấp để đặt. R hoặc chuột phải để xoay.', 5);
+requestAnimationFrame(frame);
+</script>
