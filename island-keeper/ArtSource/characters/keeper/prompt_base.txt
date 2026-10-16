@@ -1,0 +1,7 @@
+Full-body 2D game character concept, single character, centered, standing in a neutral 3/4 front view, whole body visible from head to boots with generous margin.
+
+Art style: hand-drawn gothic storybook illustration in the spirit of Don't Starve / Tim Burton — thick wobbly black ink outlines, scratchy cross-hatching, desaturated muted palette (sepia, bone white, faded teal, rust), slightly exaggerated proportions: large head, thin spindly limbs, big dark expressive eyes with tiny pupils. Flat painted cut-out paper look, no gradients, no realistic lighting.
+
+Character: "The Keeper" — a gaunt young lighthouse keeper stranded alone on a cursed island. Wild messy dark hair sticking up, pale face with dark circles under the eyes, small determined frown. Wears a patched oversized faded-teal fisherman's coat with rope belt, a rust-red knitted scarf, rolled-up trousers, mismatched worn boots. Carries a small old brass oil lantern in one hand. A coil of rope hangs at the hip. Original design — not any existing character.
+
+Background: perfectly flat solid pure magenta (#FF00FF) fill covering the entire background, no shadow on the ground, no floor, no gradient, no texture, no other objects. Do not use magenta or pink anywhere on the character.

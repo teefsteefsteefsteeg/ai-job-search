@@ -1,0 +1,106 @@
+{
+  "kind": "sprite-gen-slice-sheet",
+  "version": 1,
+  "sheet": "take1.png",
+  "grid": [
+    3,
+    1
+  ],
+  "canvas": {
+    "w": 512,
+    "h": 768
+  },
+  "baseline_y": 725.0,
+  "target_height": 645.0,
+  "scale": "cell",
+  "fit": "none",
+  "factor": null,
+  "factor_from": null,
+  "alpha_cleanup": null,
+  "cells": [
+    {
+      "name": "three_quarter",
+      "file": "three_quarter.png",
+      "factor": 0.8847736625514403,
+      "factor_from": "target_height",
+      "subject": {
+        "sheet": {
+          "w": 327,
+          "h": 729
+        },
+        "canvas": {
+          "w": 289,
+          "h": 645
+        }
+      },
+      "box": {
+        "x": 112,
+        "y": 80,
+        "w": 289,
+        "h": 645
+      },
+      "anchor": [
+        256.5,
+        725.0
+      ],
+      "clipped_px": 0,
+      "parts": 1
+    },
+    {
+      "name": "front",
+      "file": "front.png",
+      "factor": 0.8835616438356164,
+      "factor_from": "target_height",
+      "subject": {
+        "sheet": {
+          "w": 311,
+          "h": 730
+        },
+        "canvas": {
+          "w": 275,
+          "h": 645
+        }
+      },
+      "box": {
+        "x": 119,
+        "y": 80,
+        "w": 275,
+        "h": 645
+      },
+      "anchor": [
+        256.5,
+        725.0
+      ],
+      "clipped_px": 0,
+      "parts": 1
+    },
+    {
+      "name": "back",
+      "file": "back.png",
+      "factor": 0.8958333333333334,
+      "factor_from": "target_height",
+      "subject": {
+        "sheet": {
+          "w": 326,
+          "h": 720
+        },
+        "canvas": {
+          "w": 292,
+          "h": 645
+        }
+      },
+      "box": {
+        "x": 110,
+        "y": 80,
+        "w": 292,
+        "h": 645
+      },
+      "anchor": [
+        256.0,
+        725.0
+      ],
+      "clipped_px": 0,
+      "parts": 1
+    }
+  ]
+}

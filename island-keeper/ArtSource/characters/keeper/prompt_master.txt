@@ -1,0 +1,7 @@
+Using the attached character sheet as the exact design reference (same face, hair, teal patched coat, rust-red scarf, rope belt, coiled rope at hip, brass lantern, boots, same hand-drawn gothic ink style and muted palette), draw ONE single full-body pose of this same character.
+
+Pose: standing idle in 3/4 front view facing slightly to the viewer's right, holding the lantern low in the right hand, weight relaxed, whole body visible head to boots with generous empty margin on all sides, character fills about 80% of the image height.
+
+Keep the thin cream/white sticker outline around the character like the reference. Only one character, no extra views, no text.
+
+Background: perfectly flat solid pure magenta (#FF00FF) everywhere, no ground shadow, no floor, no gradient, no glow. No magenta or pink on the character.
