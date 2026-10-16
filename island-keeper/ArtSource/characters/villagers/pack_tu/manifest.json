@@ -1,0 +1,43 @@
+{
+ "cell": {
+  "w": 32,
+  "h": 40,
+  "foot_y": 38
+ },
+ "char_height": 28,
+ "frame_layout": {
+  "sheetWidth": 96,
+  "sheetHeight": 40,
+  "rows": {
+   "all_turn": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 32,
+     "h": 40
+    },
+    {
+     "x": 32,
+     "y": 0,
+     "w": 32,
+     "h": 40
+    },
+    {
+     "x": 64,
+     "y": 0,
+     "w": 32,
+     "h": 40
+    }
+   ]
+  }
+ },
+ "animation": {
+  "rows": {
+   "all_turn": {
+    "fps": 1,
+    "loop": true,
+    "frames": 3
+   }
+  }
+ }
+}

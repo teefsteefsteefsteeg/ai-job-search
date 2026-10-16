@@ -42,6 +42,14 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; image-re
 .touch { position: absolute; right: 10px; bottom: 76px; display: flex; flex-direction: column; gap: 8px; }
 .touch button { font-family: var(--font); width: 64px; height: 48px; background: var(--panel); color: var(--cream); border: 2px solid var(--edge); border-radius: 6px; font-size: .95rem; }
 @media (hover: hover) and (pointer: fine) { .touch { display: none; } }
+.dialog { position: absolute; left: 50%; bottom: 74px; transform: translateX(-50%); width: min(520px, 92%); background: var(--panel); border: 3px solid var(--sun); border-radius: 6px; padding: 10px 12px; box-sizing: border-box; }
+.dialog .who { display: flex; gap: 10px; align-items: center; }
+.dialog .who canvas { width: 48px; height: 60px; image-rendering: pixelated; background: #3b2a1a; border: 2px solid var(--edge); border-radius: 3px; }
+.dialog p { margin: 8px 0; line-height: 1.4; }
+.dialog .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.dialog .opts button { font-family: var(--font); font-size: .9rem; color: var(--cream); background: #3b2a1a; border: 2px solid var(--edge); border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+.dialog .opts button:hover, .dialog .opts button:focus-visible { border-color: var(--sun); outline: none; }
+.dialog .opts button:disabled { opacity: .45; cursor: default; }
 .fade { position: absolute; inset: 0; background: #0b0a14; opacity: 0; pointer-events: none; transition: opacity .5s; display: grid; place-items: center; font-size: 1.4rem; color: var(--cream); }
 .fade.show { opacity: 1; }
 </style>
@@ -49,8 +57,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; image-re
 <header>
   <h1>Hòn Gió · bản thử</h1>
   <div class="keys">
-    <span><kbd>WASD</kbd> đi 8 hướng</span><span><kbd>1</kbd>-<kbd>4</kbd> chọn đồ</span>
-    <span><kbd>Space</kbd> dùng</span><span><kbd>E</kbd> ngủ (ở cửa nhà)</span><span><kbd>Q</kbd> gọi / thu linh thú</span>
+    <span><kbd>WASD</kbd> đi 8 hướng</span><span><kbd>1</kbd>-<kbd>5</kbd> chọn đồ</span>
+    <span><kbd>Space</kbd> dùng</span><span><kbd>E</kbd> nói chuyện / ngủ</span><span><kbd>Q</kbd> huýt sáo gọi linh thú</span>
   </div>
 </header>
 
@@ -59,7 +67,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; image-re
   <div class="hud">
     <span class="box" id="dateBox">Xuân · Ngày 1</span>
     <span class="box" id="clockBox">6:00</span>
-    <span class="box" id="bagBox">Củ cải: 0</span>
+    <span class="box" id="bagBox">Củ cải: 0</span><span class="box" id="coinBox">Xu: 50</span>
   </div>
   <div class="toast" id="toast">Chọn Cuốc (1), đứng cạnh ô đất trong vườn rồi bấm Space</div>
   <div class="bottom">
@@ -68,8 +76,13 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; image-re
   </div>
   <div class="touch">
     <button id="tUse" type="button">Dùng</button>
-    <button id="tE" type="button">Ngủ</button>
-    <button id="tQ" type="button">Gọi</button>
+    <button id="tE" type="button">Nói / Ngủ</button>
+    <button id="tQ" type="button">Huýt sáo</button>
+  </div>
+  <div class="dialog" id="dialog" hidden>
+    <div class="who"><canvas id="dlgFace" width="32" height="40"></canvas><div><b id="dlgName"></b><div id="dlgHearts"></div></div></div>
+    <p id="dlgText"></p>
+    <div class="opts" id="dlgOpts"></div>
   </div>
   <div class="fade" id="fade"></div>
 </div>
@@ -94,6 +107,7 @@ const MIN_PER_SEC = 5;                     // game minutes per real second
 
 const farmerImg = new Image(); farmerImg.src = 'farmer.png';
 const creImg = new Image(); creImg.src = 'creatures.png';
+const vilImg = new Image(); vilImg.src = 'villagers.png';
 
 // ===== map =====
 // tile kinds: 0 grass, 1 path, 2 field (diggable), 3 water, 4 house(block), 5 fence
@@ -109,7 +123,16 @@ for (let y = FIELD.ty; y < FIELD.ty + FIELD.th; y++) for (let x = FIELD.tx; x < 
 for (let x = FIELD.tx - 1; x <= FIELD.tx + FIELD.tw; x++) { if (at(x, FIELD.ty - 1) === 0) set(x, FIELD.ty - 1, 5); if (at(x, FIELD.ty + FIELD.th) === 0) set(x, FIELD.ty + FIELD.th, 5); }
 for (let y = FIELD.ty - 1; y <= FIELD.ty + FIELD.th; y++) { if (at(FIELD.tx - 1, y) === 0) set(FIELD.tx - 1, y, 5); if (at(FIELD.tx + FIELD.tw, y) === 0) set(FIELD.tx + FIELD.tw, y, 5); }
 for (let y = 3; y < 10; y++) for (let x = 24; x < 33; x++) { const dx = (x - 28) / 4.6, dy = (y - 6) / 3.6; if (dx * dx + dy * dy < 1) set(x, y, 3); }
-const isBlock = k => k === 3 || k === 4 || k === 5;
+// tile 6 = market stall (blocks)
+const STALLS = [{ tx: 9, ty: 23, tw: 2, kind: 'seed' }, { tx: 15, ty: 23, tw: 2, kind: 'fish' }];
+for (const st of STALLS) for (let x = st.tx; x < st.tx + st.tw; x++) set(x, st.ty, 6);
+const isBlock = k => k === 3 || k === 4 || k === 5 || k === 6;
+const VILLAGERS = [
+  { id: 'tu', name: 'Ông Tư', row: 0, x: 10 * T, y: 24 * T + 10, likes: 'turnip', hearts: 0, talked: false, gifted: false, face: 0,
+    lines: ['Hạt giống tốt thì mùa mới tốt, cháu ạ.', 'Ông bán hạt ở chợ này bốn mươi năm rồi.', 'Thấy linh thú thì đừng đuổi, cho nó ăn trước.', 'Cháu chăm vườn giỏi, ông cũng mừng.'] },
+  { id: 'lan', name: 'Cô Lan', row: 1, x: 16 * T, y: 24 * T + 10, likes: 'turnip', hearts: 0, talked: false, gifted: false, face: 0,
+    lines: ['Củ cải đảo này ngọt lắm, có bao nhiêu cô mua hết.', 'Bánh cá cô làm, linh thú nào cũng mê.', 'Bão mùa hạ to lắm, nhớ chằng mái nhà.', 'Hôm nào rảnh ra bến xem thuyền về nhé.'] },
+];
 
 // farm tile state: {tilled, wet, crop: null | {stage, watered}}
 const farm = new Map();
@@ -152,6 +175,15 @@ function paintGround(season) {
   const DX = DOOR.tx * T + 2, DY = DOOR.ty * T - 6;
   px(DX, DY, '#2b1d12', 12, 22); px(DX + 1, DY + 1, '#8a5a2b', 10, 21); px(DX + 8, DY + 11, '#f4c542', 2, 2);
   px(HX + 12, HY + 40, '#2b1d12', 14, 12); px(HX + 13, HY + 41, '#9fd3e3', 12, 10); px(HX + 19, HY + 41, '#2b1d12', 1, 10);
+  for (const st of STALLS) {
+    const X = st.tx * T, Y = st.ty * T - 6, Wd = st.tw * T;
+    px(X, Y + 6, '#2b1d12', Wd, 14); px(X + 1, Y + 7, '#a8743d', Wd - 2, 12); px(X + 1, Y + 7, '#c48a4a', Wd - 2, 2);
+    px(X + 2, Y - 10, '#2b1d12', 2, 16); px(X + Wd - 4, Y - 10, '#2b1d12', 2, 16);
+    for (let i = 0; i < Wd; i += 4) px(X + i, Y - 12, i % 8 ? '#e8d3a8' : (st.kind === 'seed' ? '#6fb94a' : '#4a9cc0'), 4, 4);
+    px(X, Y - 13, '#2b1d12', Wd, 1);
+    if (st.kind === 'seed') { for (let i = 0; i < 3; i++) { px(X + 4 + i * 9, Y + 2, '#2b1d12', 7, 7); px(X + 5 + i * 9, Y + 3, ['#e8d3a8', '#f4c542', '#c77bc0'][i], 5, 5); } }
+    else { px(X + 5, Y + 1, '#2b1d12', 22, 7); px(X + 6, Y + 2, '#c99a5b', 20, 5); for (let i = 0; i < 4; i++) px(X + 8 + i * 5, Y + 3, '#9fb8c8', 4, 2); }
+  }
   px(HX + HW - 26, HY + 40, '#2b1d12', 14, 12); px(HX + HW - 25, HY + 41, '#9fd3e3', 12, 10); px(HX + HW - 19, HY + 41, '#2b1d12', 1, 10);
 }
 
@@ -172,17 +204,17 @@ function drawFarmTile(g, x, y, f) {
 
 // ===== state =====
 const P = { x: (DOOR.tx + .5) * T, y: (DOOR.ty + 2) * T, dir: 'down', flip: false, moving: false, t: 0, act: null, trail: [] };
-const S = { day: 1, seasonIdx: 0, minutes: 6 * 60, turnips: 0, seeds: 20, tool: 0, out: null, sleeping: false };
+const S = { day: 1, seasonIdx: 0, minutes: 6 * 60, turnips: 0, seeds: 10, treats: 3, coins: 50, tool: 0, out: null, sleeping: false, dialog: null };
 const party = [];
 const R = rng(42);
 const wild = CRE.map((c, i) => {
   const x = [31, 22, 35, 27][i] * T, y = [14, 19, 22, 27][i] * T;
-  return { ...c, sx: c.x, x, y, tx: x, ty: y, wait: R() * 2, flip: false, moving: false, t: R() * 9, caught: false, flee: 0, shake: 0 };
+  return { ...c, sx: c.x, x, y, tx: x, ty: y, wait: R() * 2, flip: false, moving: false, t: R() * 9, caught: false, flee: 0, shake: 0, trust: 0, fedToday: false, called: false, leaving: false };
 });
 let mini = null;   // lasso minigame
 
 const TOOLS = [
-  { id: 'hoe', name: 'Cuốc' }, { id: 'water', name: 'Bình tưới' }, { id: 'seed', name: 'Hạt củ cải' }, { id: 'lasso', name: 'Dây thừng' },
+  { id: 'hoe', name: 'Cuốc' }, { id: 'water', name: 'Bình tưới' }, { id: 'seed', name: 'Hạt củ cải' }, { id: 'treat', name: 'Bánh cá' }, { id: 'lasso', name: 'Dây buộc' },
 ];
 
 // ===== UI =====
@@ -194,23 +226,25 @@ const ICONS = {
   hoe: g => { g.fillStyle = '#2b1d12'; g.fillRect(3, 2, 2, 12); g.fillStyle = '#a8743d'; g.fillRect(4, 3, 1, 10); g.fillStyle = '#2b1d12'; g.fillRect(4, 2, 9, 4); g.fillStyle = '#b8c4cc'; g.fillRect(5, 3, 7, 2); },
   water: g => { g.fillStyle = '#2b1d12'; g.fillRect(3, 6, 8, 8); g.fillRect(10, 5, 4, 2); g.fillStyle = '#7d9fb5'; g.fillRect(4, 7, 6, 6); g.fillRect(11, 6, 2, 1); g.fillStyle = '#2b1d12'; g.fillRect(5, 3, 4, 3); g.fillStyle = '#7fd0e8'; g.fillRect(14, 8, 1, 1); g.fillRect(13, 10, 1, 1); },
   seed: g => { g.fillStyle = '#2b1d12'; g.fillRect(3, 3, 10, 11); g.fillStyle = '#e8d3a8'; g.fillRect(4, 4, 8, 9); g.fillStyle = '#c77bc0'; g.fillRect(6, 7, 4, 3); g.fillStyle = '#6fb94a'; g.fillRect(7, 5, 2, 2); },
+  treat: g => { g.fillStyle = '#2b1d12'; g.fillRect(2, 6, 12, 7); g.fillRect(12, 4, 3, 11); g.fillStyle = '#e8b04a'; g.fillRect(3, 7, 10, 5); g.fillRect(13, 5, 1, 9); g.fillStyle = '#2b1d12'; g.fillRect(5, 8, 1, 1); g.fillStyle = '#c4782e'; g.fillRect(7, 9, 4, 1); },
   lasso: g => { g.fillStyle = '#2b1d12'; g.fillRect(3, 3, 10, 10); g.fillStyle = '#c99a5b'; g.fillRect(4, 4, 8, 8); g.fillStyle = '#2b1d12'; g.fillRect(6, 6, 4, 4); g.fillStyle = '#c99a5b'; g.fillRect(12, 11, 3, 2); },
 };
 const hotbar = $('hotbar');
 TOOLS.forEach((t, i) => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'slot'; b.id = 'slot' + i; b.title = t.name;
   b.innerHTML = `<span class="n">${i + 1}</span>`; b.appendChild(iconCanvas(ICONS[t.id]));
-  if (t.id === 'seed') { const c = document.createElement('span'); c.className = 'c'; c.id = 'seedCount'; b.appendChild(c); }
+  if (t.id === 'seed' || t.id === 'treat') { const c = document.createElement('span'); c.className = 'c'; c.id = t.id + 'Count'; b.appendChild(c); }
   b.onclick = () => selectTool(i); hotbar.appendChild(b);
 });
 function selectTool(i) { S.tool = i; [...hotbar.children].forEach((b, j) => b.classList.toggle('on', j === i)); toast(TOOLS[i].name, 1.2); }
-selectTool(0); toast('Chọn Cuốc (1), đứng cạnh ô đất trong vườn rồi bấm Space', 5);
+selectTool(0); toast('Chọn Cuốc (1), đứng cạnh ô đất trong vườn rồi bấm Space. Ra chợ phía nam gặp Ông Tư và Cô Lan.', 5);
 function refreshHud() {
   $('dateBox').textContent = `${SEASONS[S.seasonIdx]} · Ngày ${S.day}`;
   const h = Math.floor(S.minutes / 60) % 24, m = Math.floor(S.minutes % 60);
   $('clockBox').textContent = `${h}:${String(m).padStart(2, '0')}`;
   $('bagBox').textContent = `Củ cải: ${S.turnips}`;
-  $('seedCount').textContent = S.seeds;
+  $('coinBox').textContent = `Xu: ${S.coins}`;
+  $('seedCount').textContent = S.seeds; $('treatCount').textContent = S.treats;
 }
 function refreshParty() {
   const el = $('party'); el.querySelectorAll('.slot').forEach(n => n.remove());
@@ -231,7 +265,8 @@ addEventListener('keydown', e => {
   if (k === ' ' || k === 'j') use();
   else if (k === 'e') interact();
   else if (k === 'q') summon();
-  else if ('1234'.includes(k)) selectTool(+k - 1);
+  else if ('12345'.includes(k)) selectTool(+k - 1);
+  else if (k === 'escape') closeDialog();
   else keys.add(k);
 });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -264,7 +299,7 @@ function targetTile() {
 // ===== actions =====
 function startAct(kind, onHit) { P.act = { kind, t: 0, onHit, hit: false }; P.dir = toolDir(); }
 function use() {
-  if (S.sleeping) return;
+  if (S.sleeping || S.dialog) return;
   if (mini) { pull(); return; }
   if (P.act) return;
   const [tx, ty] = targetTile(), k = at(tx, ty), f = farm.get(key(tx, ty));
@@ -283,28 +318,30 @@ function use() {
     if (f.crop) { toast('Ô này đã gieo rồi'); return; }
     if (!S.seeds) { toast('Hết hạt giống'); return; }
     f.crop = { stage: 0, watered: f.wet }; S.seeds--; refreshHud(); toast('Đã gieo hạt củ cải. Nhớ tưới!', 1.6);
+  } else if (tool === 'treat') {
+    const tgt = nearCreature();
+    if (!tgt) { toast('Đứng sát một linh thú rồi mới cho ăn'); return; }
+    if (!S.treats) { toast('Hết bánh cá. Đổi ở sạp Cô Lan'); return; }
+    if (tgt.fedToday) { toast(`${tgt.name} no rồi, mai cho ăn tiếp nhé`); return; }
+    S.treats--; tgt.fedToday = true; tgt.trust = Math.min(3, tgt.trust + 1); tgt.wait = 2; tgt.tx = tgt.x; tgt.ty = tgt.y; tgt.flee = 0; tgt.shake = .3;
+    hearts.push({ x: tgt.x, y: tgt.y - CRE_H - 4, t: 0 }); refreshHud();
+    toast(tgt.trust >= 3 ? `${tgt.name} đã tin bạn! Dùng Dây buộc (5) để đưa nó về nhà` : `${tgt.name} ăn ngon lành (tin tưởng ${tgt.trust}/3)`, 2.4);
   } else if (tool === 'lasso') {
-    startAct('lasso', () => {
-      const tgt = lassoTarget();
-      if (!tgt) { toast('Quăng hụt. Đứng gần linh thú hơn (1-2 ô) và quay mặt về phía nó'); return; }
-      startMini(tgt);
-    });
+    const tgt = nearCreature();
+    if (!tgt) { toast('Đứng sát một linh thú đã tin bạn rồi buộc dây'); return; }
+    if (tgt.trust < 3) { toast(`${tgt.name} còn sợ (tin tưởng ${tgt.trust}/3). Cho ăn bánh cá mỗi ngày trước đã`); tgt.flee = 2; return; }
+    startAct('lasso', () => startMini(tgt));
   }
 }
-function lassoTarget() {
-  const d = toolDir(), fx = d === 'side' ? (P.flip ? -1 : 1) : 0, fy = d === 'down' ? 1 : d === 'up' ? -1 : 0;
-  let best = null, bd = 44;
-  for (const w of wild) {
-    if (w.caught || w.flee > 0) continue;
-    const dx = w.x - P.x, dy = w.y - P.y, dist = Math.hypot(dx, dy);
-    if (dist < bd && (dx * fx + dy * fy) > dist * 0.3) { bd = dist; best = w; }
-  }
+function nearCreature() {
+  let best = null, bd = 22;
+  for (const w of wild) { if (w.caught) continue; const d = Math.hypot(w.x - P.x, w.y - P.y); if (d < bd) { bd = d; best = w; } }
   return best;
 }
 // timing minigame: press when the marker is inside the green zone, 3 hits before 3 misses
 function startMini(w) {
   mini = { w, pos: 0, dir: 1, speed: 1.1 + R() * .4, zone: .35 + R() * .3, size: .2, hits: 0, miss: 0, flash: 0 };
-  w.moving = false; toast(`Đã quăng dây trúng ${w.name}! Bấm Space khi kim vào ô xanh`, 3);
+  w.moving = false; toast(`Buộc dây cho ${w.name}: bấm Space đúng nhịp khi kim vào ô xanh`, 3);
 }
 function pull() {
   const m = mini, ok = Math.abs(m.pos - m.zone) < m.size / 2;
@@ -313,27 +350,70 @@ function pull() {
     m.hits++;
     if (m.hits >= 3) {
       m.w.caught = true; party.push(m.w); mini = null; refreshParty();
-      toast(`Đã buộc dây được ${m.w.name}! Bấm Q hoặc chạm vào ô linh thú để gọi ra`, 3.5); return;
+      toast(`${m.w.name} theo bạn về nhà! Huýt sáo (Q) để gọi nó ra bất cứ lúc nào`, 3.5); return;
     }
     m.zone = .2 + R() * .6; m.size = Math.max(.12, m.size - .03); m.speed += .35;
   } else {
     m.miss++;
-    if (m.miss >= 3) { m.w.flee = 6; mini = null; toast(`${m.w.name} giật đứt dây chạy mất! Thử lại sau`, 2.6); return; }
+    if (m.miss >= 3) { m.w.flee = 4; m.w.trust = Math.max(0, m.w.trust - 1); mini = null; toast(`${m.w.name} giật mình chạy mất (tin tưởng giảm). Thử lại sau`, 2.6); return; }
   }
 }
 function summon(which) {
-  if (!party.length) { toast('Chưa có linh thú nào. Dùng Dây thừng (4) để bắt'); return; }
+  if (S.sleeping || S.dialog) return;
+  if (!party.length) { toast('Chưa có linh thú nào. Cho ăn bánh cá (4) rồi buộc dây (5)'); return; }
   const next = which || (S.out ? party[(party.indexOf(S.out) + 1) % (party.length + 1)] : party[0]);
-  if (S.out) { poofs.push({ x: S.out.x, y: S.out.y - 8, t: 0 }); }
-  if (!next || next === S.out) { if (S.out) toast(`Đã thu ${S.out.name} về dây`); S.out = null; refreshParty(); return; }
-  S.out = next; next.x = P.x + (P.flip ? 14 : -14); next.y = P.y + 4; P.trail = [];
-  poofs.push({ x: next.x, y: next.y - 8, t: 0 }); toast(`Ra đây nào, ${next.name}!`, 1.6); refreshParty();
+  notes.push({ t: 0 });
+  if (S.out) { S.out.leaving = true; toast(`${S.out.name} chạy về nhà`, 1.4); }
+  if (!next || next === S.out) { S.out = null; refreshParty(); return; }
+  const prev = S.out; S.out = next; next.leaving = false; next.called = true;
+  const z = Z * dpr, vw = cv.width / z;
+  next.x = P.x + (R() < .5 ? -1 : 1) * (vw / 2 + 20); next.y = P.y + (R() - .5) * 40; P.trail = [];
+  toast(`Huýt sáo... ${next.name} chạy tới!`, 1.6); refreshParty();
+  if (prev) prev.leaveTo = { x: P.x + (prev.x < P.x ? -1 : 1) * (vw / 2 + 30), y: prev.y };
 }
 function interact() {
   if (S.sleeping || mini) return;
+  if (S.dialog) { closeDialog(); return; }
+  const v = VILLAGERS.find(v => Math.hypot(v.x - P.x, v.y - P.y) < 26);
+  if (v) { openDialog(v); return; }
   const tx = Math.floor(P.x / T), ty = Math.floor((P.y - 2) / T);
   if (Math.abs(tx - DOOR.tx) <= 1 && ty >= DOOR.ty && ty <= DOOR.ty + 2) sleep(false);
-  else toast('Đến cửa nhà rồi bấm E để đi ngủ');
+  else toast('Đứng gần dân làng để nói chuyện, hoặc đến cửa nhà để đi ngủ');
+}
+
+// ===== villagers: talk, gift, trade =====
+function openDialog(v, text) {
+  S.dialog = v; keys.clear();
+  v.face = Math.abs(P.x - v.x) > Math.abs(P.y - v.y) ? 1 : (P.y < v.y ? 2 : 0);
+  v.flip = P.x < v.x;
+  const fc = $('dlgFace').getContext('2d'); fc.clearRect(0, 0, 32, 40); fc.drawImage(vilImg, 0, v.row * 40, 32, 40, 0, 0, 32, 40);
+  $('dlgName').textContent = v.name;
+  $('dlgHearts').textContent = '♥'.repeat(v.hearts) + '♡'.repeat(Math.max(0, 5 - v.hearts));
+  $('dlgText').textContent = text || (v.talked ? 'Cháu cần gì nữa không?' : 'Chào cháu!');
+  const o = $('dlgOpts'); o.innerHTML = '';
+  const add = (label, fn, ok = true) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.disabled = !ok; b.onclick = fn; o.appendChild(b); };
+  add(v.talked ? 'Trò chuyện (đã nói hôm nay)' : 'Trò chuyện', () => {
+    if (!v.talked) { v.talked = true; v.hearts = Math.min(5, v.hearts + 1); }
+    openDialog(v, v.lines[Math.min(v.lines.length - 1, v.hearts)]);
+  });
+  add(`Tặng 1 củ cải`, () => {
+    if (v.gifted) return openDialog(v, 'Hôm nay cháu tặng rồi, để mai nhé!');
+    S.turnips--; v.gifted = true; v.hearts = Math.min(5, v.hearts + 2); refreshHud();
+    openDialog(v, 'Ôi củ cải tươi quá! Cảm ơn cháu nhiều.');
+  }, S.turnips > 0);
+  if (v.id === 'tu') {
+    add('Mua 5 hạt củ cải (25 xu)', () => { S.coins -= 25; S.seeds += 5; refreshHud(); openDialog(v, 'Đây, hạt mới đầu mùa đấy.'); }, S.coins >= 25 && S.seasonIdx !== 3);
+    add('Đổi 2 củ cải lấy 4 hạt', () => { S.turnips -= 2; S.seeds += 4; refreshHud(); openDialog(v, 'Đổi thế là sòng phẳng nhé.'); }, S.turnips >= 2);
+  } else {
+    add('Bán 1 củ cải (12 xu)', () => { S.turnips--; S.coins += 12; refreshHud(); openDialog(v, 'Củ chắc tay, cô lấy!'); }, S.turnips > 0);
+    add('Đổi 2 củ cải lấy 3 bánh cá', () => { S.turnips -= 2; S.treats += 3; refreshHud(); openDialog(v, 'Bánh cá mới nướng, linh thú mê lắm.'); }, S.turnips >= 2);
+    add('Mua 1 bánh cá (10 xu)', () => { S.coins -= 10; S.treats++; refreshHud(); openDialog(v, 'Của cháu đây.'); }, S.coins >= 10);
+  }
+  add('Tạm biệt (E)', closeDialog);
+  $('dialog').hidden = false;
+  o.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
+}
+function closeDialog() { if (!S.dialog) return; S.dialog = null; $('dialog').hidden = true; cv.focus?.(); 
 }
 function sleep(passedOut) {
   S.sleeping = true; const fade = $('fade');
@@ -350,6 +430,8 @@ function sleep(passedOut) {
       f.wet = S.seasonIdx !== 3 && R() < .15;                       // occasional rain
       if (f.wet && f.crop) f.crop.watered = true;
     }
+    for (const v of VILLAGERS) { v.talked = false; v.gifted = false; }
+    for (const w of wild) w.fedToday = false;
     S.minutes = 6 * 60; P.x = (DOOR.tx + .5) * T; P.y = (DOOR.ty + 2) * T; P.dir = 'down'; P.flip = false;
     if (S.out) { S.out.x = P.x - 14; S.out.y = P.y + 4; }
     refreshHud(); fade.textContent = `${SEASONS[S.seasonIdx]} · Ngày ${S.day}`;
@@ -357,11 +439,11 @@ function sleep(passedOut) {
   }, 700);
 }
 
-const poofs = [], pops = [];
+const poofs = [], pops = [], hearts = [], notes = [];
 function popItem(tx, ty) { pops.push({ x: tx * T + 8, y: ty * T, t: 0 }); }
 
 // ===== update =====
-function blocked(x, y) { return isBlock(at(Math.floor(x / T), Math.floor(y / T))) || isBlock(at(Math.floor((x - 4) / T), Math.floor(y / T))) || isBlock(at(Math.floor((x + 4) / T), Math.floor(y / T))); }
+function blocked(x, y) { if (VILLAGERS.some(v => Math.abs(v.x - x) < 6 && Math.abs(v.y - y) < 4)) return true; return isBlock(at(Math.floor(x / T), Math.floor(y / T))) || isBlock(at(Math.floor((x - 4) / T), Math.floor(y / T))) || isBlock(at(Math.floor((x + 4) / T), Math.floor(y / T))); }
 function update(dt) {
   if (!S.sleeping) {
     S.minutes += MIN_PER_SEC * dt;
@@ -374,7 +456,7 @@ function update(dt) {
     P.act.t += dt; const n = ROWS[P.dir + '_' + P.act.kind].length, i = P.act.t * FPS[P.act.kind];
     if (!P.act.hit && i >= 1.5) { P.act.hit = true; P.act.onHit && P.act.onHit(); }
     if (i >= n + .5) P.act = null;
-  } else if (!mini && !S.sleeping) {
+  } else if (!mini && !S.sleeping && !S.dialog) {
     const [vx, vy] = inputVec(), mv = !!(vx || vy);
     if (mv !== P.moving) { P.moving = mv; P.t = 0; }
     if (mv) {
@@ -389,9 +471,14 @@ function update(dt) {
 
   for (const w of wild) {
     w.t += dt; w.shake = Math.max(0, w.shake - dt);
+    if (w.leaveTo) {
+      const dx = w.leaveTo.x - w.x, dy = w.leaveTo.y - w.y, d = Math.hypot(dx, dy);
+      if (d < 4) { w.leaveTo = null; continue; }
+      w.moving = true; w.x += dx / d * Math.min(d, SPEED * 1.4 * dt); w.y += dy / d * Math.min(d, SPEED * 1.4 * dt); w.flip = dx < 0; continue;
+    }
     if (w.caught && S.out !== w) continue;
     let gx, gy, sp;
-    if (S.out === w) { const p = P.trail[Math.min(P.trail.length - 1, 9)] || P; gx = p.x; gy = p.y; sp = SPEED * 1.2; }
+    if (S.out === w) { const p = P.trail[Math.min(P.trail.length - 1, 9)] || { x: P.x + (P.flip ? 14 : -14), y: P.y + 3 }; gx = p.x; gy = p.y; sp = SPEED * (w.called ? 1.6 : 1.2); if (Math.hypot(gx - w.x, gy - w.y) < 20) w.called = false; }
     else if (mini && mini.w === w) continue;
     else {
       if (w.flee > 0) { w.flee -= dt; const dx = w.x - P.x, dy = w.y - P.y, d = Math.hypot(dx, dy) || 1; if (d < 90) { w.tx = w.x + dx / d * 30; w.ty = w.y + dy / d * 30; w.wait = .3; } }
@@ -408,6 +495,8 @@ function update(dt) {
   }
   for (const p of poofs) p.t += dt; while (poofs.length && poofs[0].t > .5) poofs.shift();
   for (const p of pops) p.t += dt; while (pops.length && pops[0].t > .8) pops.shift();
+  for (const h of hearts) h.t += dt; while (hearts.length && hearts[0].t > 1) hearts.shift();
+  for (const n of notes) n.t += dt; while (notes.length && notes[0].t > 1.2) notes.shift();
 }
 
 // ===== render =====
@@ -450,7 +539,7 @@ function render() {
     }
   } });
   for (const w of wild) {
-    if (w.caught && S.out !== w) continue;
+    if (w.caught && S.out !== w && !w.leaveTo) continue;
     ents.push({ y: w.y, d: () => {
       const hop = w.moving ? Math.round(Math.abs(Math.sin(w.t * 12)) * 3) : (Math.sin(w.t * 3) > .7 ? 1 : 0);
       const sh = w.shake > 0 ? Math.round(Math.sin(w.t * 60) * 1.5) : 0;
@@ -460,7 +549,17 @@ function render() {
       if (w.flee > 0) { ctx.fillStyle = '#fff4d6'; ctx.fillRect(x + 6, y - CRE_H - 8, 1, 4); ctx.fillRect(x + 6, y - CRE_H - 3, 1, 1); }
     } });
   }
+  for (const v of VILLAGERS) ents.push({ y: v.y, d: () => {
+    const bob = Math.sin(performance.now() / 600 + v.row) > .6 ? 1 : 0, x = Math.round(v.x), y = Math.round(v.y);
+    shadow(x, y, 12);
+    if (vilImg.complete && vilImg.naturalWidth) { ctx.save(); ctx.translate(x, y); if (v.face === 1 && v.flip) ctx.scale(-1, 1); ctx.drawImage(vilImg, v.face * 32, v.row * 40, 32, 40, -16, -38 - bob, 32, 40); ctx.restore(); }
+    if (Math.hypot(v.x - P.x, v.y - P.y) < 26 && !S.dialog) { ctx.fillStyle = '#fff4d6'; ctx.fillRect(x - 1, y - 46, 3, 5); ctx.fillRect(x - 1, y - 40, 3, 2); }
+  } });
   ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
+  const nc = !mini && !S.dialog ? nearCreature() : null;
+  if (nc) { const x = Math.round(nc.x), y = Math.round(nc.y - CRE_H - 9); for (let i = 0; i < 3; i++) { ctx.fillStyle = i < nc.trust ? '#e8486a' : 'rgba(255,244,214,.7)'; ctx.fillRect(x - 8 + i * 6, y, 4, 4); } }
+  for (const h of hearts) { const y = Math.round(h.y - h.t * 12), x = Math.round(h.x) - 3; ctx.fillStyle = '#e8486a'; ctx.fillRect(x, y, 2, 2); ctx.fillRect(x + 3, y, 2, 2); ctx.fillRect(x - 1, y + 1, 7, 2); ctx.fillRect(x, y + 3, 5, 1); ctx.fillRect(x + 1, y + 4, 3, 1); ctx.fillRect(x + 2, y + 5, 1, 1); }
+  for (const n of notes) { const y = Math.round(P.y - 40 - n.t * 14), x = Math.round(P.x + 6 + Math.sin(n.t * 8) * 2); ctx.fillStyle = '#2b1d12'; ctx.fillRect(x, y, 2, 6); ctx.fillRect(x + 2, y, 3, 2); ctx.fillRect(x - 2, y + 5, 3, 2); ctx.fillStyle = '#fff4d6'; ctx.fillRect(x, y + 1, 1, 4); }
 
   // rope during the minigame
   if (mini) {

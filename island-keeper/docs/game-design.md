@@ -48,14 +48,17 @@ Pipeline: OpenRouter tạo ảnh trên nền magenta, sprite-gen tách nền và
 (`fit.pixel_unfake`), ghép atlas kèm `manifest.json` để Unity đọc.
 
 ## Sinh vật đồng hành (linh thú)
-Thể loại sưu tầm sinh vật, nhưng theo cách riêng của game này: không ném bóng để bắt.
-Linh thú sống hoang trên đảo; bạn làm quen bằng cách trò chuyện và cho ăn nông sản
-mỗi ngày (thanh tim). Đủ thân thì chúng về nông trại ở và đi theo bạn.
-Mỗi con có một việc giúp nông trại: Mạ tưới cây, Muối tìm đồ ở bãi biển, Đóm soi sáng
-ban đêm và dụ côn trùng, Dừa xới đất. Có thể thêm hội thi linh thú ở lễ hội thay cho đánh nhau.
+Linh thú sống hoang trên đảo. Cách đưa về nhà (đã có trong `Prototype/web-gba/`):
+1. Đứng sát linh thú, cho ăn **bánh cá**, mỗi ngày một lần: tin tưởng +1 (tối đa 3).
+2. Đủ 3 tin tưởng thì dùng **dây buộc** ngay bên cạnh: minigame bấm đúng nhịp, 3 lần đúng là
+   nó theo về; hụt 3 lần thì nó giật mình chạy và mất 1 tin tưởng.
+3. **Huýt sáo** (Q) để gọi linh thú chạy từ ngoài vào đi theo; huýt lần nữa để đổi con hoặc cho nó chạy về.
 
-Lưu ý pháp lý (không phải tư vấn luật): tránh tên, hình và giao diện của Pokémon. Nintendo
-từng kiện vụ Palworld dựa trên bằng sáng chế cơ chế bắt sinh vật bằng vật thể ném, nên
-cơ chế làm quen ở đây cố ý khác hẳn.
+Cố ý tránh các cơ chế trong bằng sáng chế Nintendo kiện Palworld: không ném vật để bắt, không
+hiện tỉ lệ bắt thành công, không thả sinh vật bằng vật ném, không cưỡi hay bay. Đây là nhận
+định chung, không phải tư vấn pháp lý; nên hỏi luật sư sở hữu trí tuệ trước khi phát hành, nhất là ở Nhật.
 
-Đã có: `ArtSource/creatures/` (Mạ, Muối, Đóm, Dừa), bản chơi thử `Prototype/web-farm/`.
+## Dân làng và trao đổi (đã có trong bản thử)
+- **Ông Tư** (sạp hạt giống): trò chuyện, nhận quà; bán 5 hạt / 25 xu; đổi 2 củ cải lấy 4 hạt.
+- **Cô Lan** (sạp cá): mua củ cải 12 xu; đổi 2 củ cải lấy 3 bánh cá; bán bánh cá 10 xu.
+- Mỗi ngày nói chuyện +1 tim, tặng quà +2 tim (tối đa 5). Lời thoại đổi theo số tim.
